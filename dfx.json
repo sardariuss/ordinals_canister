@@ -1,0 +1,17 @@
+{
+  "canisters": {
+    "ic_btc_ordinals": {
+      "candid": "src/ic_btc_ordinals/ic_btc_ordinals.did",
+      "package": "ic_btc_ordinals",
+      "type": "rust"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}

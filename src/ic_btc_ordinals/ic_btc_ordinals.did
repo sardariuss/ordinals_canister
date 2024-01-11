@@ -1,0 +1,171 @@
+type utxo = record {
+  txid: text;
+  vout: nat32;
+};
+
+type bitgem_sat_ranges = record {
+  ranges: vec bitgem_sat_range;
+  exoticRanges: vec bitgem_exotic_sat_range;
+};
+
+type bitgem_sat_range = record {
+  utxo: text;
+  start: nat64;
+  size: nat64;
+  end: nat64;
+  offset: nat64;
+};
+
+type bitgem_exotic_sat_range = record {
+  utxo: text;
+  start: nat64;
+  size: nat64;
+  end: nat64;
+  offset: nat64;
+  satributes : vec text;
+};
+
+type hiro_ordinal_info = record {
+  coinbase_height: nat64;
+  cycle: nat64;
+  decimal: text;
+  degree: text;
+  inscription_id: opt text;
+  epoch: nat64;
+  name: text;
+  offset: nat64;
+  percentile: text;
+  period: nat64;
+  rarity: text;
+};
+
+type hiro_sat_inscription = record {
+  id: text;
+  number: int64;
+  address: text;
+  genesis_address: text;
+  genesis_block_height: nat64;
+  genesis_block_hash: text;
+  genesis_tx_id: text;
+  genesis_fee: text;
+  genesis_timestamp: nat64;
+  tx_id: text;
+  location: text;
+  output: text;
+  value: text;
+  offset: text;
+  sat_ordinal: text;
+  sat_rarity: text;
+  sat_coinbase_height: nat64;
+  mime_type: text;
+  content_type: text;
+  content_length: nat64;
+  timestamp: nat64;
+  curse_type: opt text;
+  recursive: bool;
+  recursion_refs: opt vec text;
+};
+
+type hiro_sat_inscriptions = record {
+  limit: nat64;
+  offset: nat64;
+  total: nat64;
+  results: vec hiro_sat_inscription;
+};
+
+type inscription_id = text;
+
+type inscription_content = vec nat8;
+
+type ticker = text;
+
+type brc20_details = record {
+  token: brc20_token;
+  supply: brc20_supply;
+};
+
+type brc20_token = record {
+  id: text;
+  number: nat64;
+  block_height: nat64;
+  tx_id: text;
+  address: text;
+  ticker: ticker;
+  max_supply: text;
+  mint_limit: text;
+  decimals: nat64;
+  deploy_timestamp: nat64;
+  minted_supply: text;
+  tx_count: nat64;
+};
+
+type brc20_supply = record {
+  max_supply: text;
+  minted_supply: text;
+  holders: nat64;
+};
+
+type brc20_holders = record {
+  limit: nat64;
+  offset: nat64;
+  total: nat64;
+  results: vec brc20_holder;
+};
+
+type brc20_holder = record {
+  address: text;
+  overall_balance: text;
+};
+
+type sat_range_result = variant {
+  Ok: bitgem_sat_ranges;
+  Err: text;
+};
+
+type sat_info_result = variant {
+  Ok: hiro_ordinal_info;
+  Err: text;
+};
+
+type hiro_sat_inscriptions_result = variant {
+  Ok: hiro_sat_inscriptions;
+  Err: text;
+};
+
+type hiro_sat_inscription_result = variant {
+  Ok: hiro_sat_inscription;
+  Err: text;
+};
+
+type hiro_inscription_content_result = variant {
+  Ok: inscription_content;
+  Err: text;
+};
+
+type brc20_details_result = variant {
+  Ok: brc20_details;
+  Err: text;
+};
+
+type brc20_holders_result = variant {
+  Ok: brc20_holders;
+  Err: text;
+};
+
+service : () -> {
+
+  "sat_range"           : (utxo)           -> (sat_range_result);
+
+  "sat_info"            : (nat64)          -> (sat_info_result);
+
+  "sat_inscriptions"    : (nat64)          -> (hiro_sat_inscriptions_result);
+
+  "inscription_info"    : (inscription_id) -> (hiro_sat_inscription_result);
+
+  "inscription_content" : (inscription_id) -> (hiro_inscription_content_result);
+
+  "brc20_details"       : (ticker)         -> (brc20_details_result);
+
+  "brc20_holders"       : (ticker)         -> (brc20_holders_result);
+  
+}
