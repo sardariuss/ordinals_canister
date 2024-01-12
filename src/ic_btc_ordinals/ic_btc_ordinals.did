@@ -1,3 +1,34 @@
+type args = record {
+  function: function;
+  query_options: opt query_options;
+  max_kb_per_item: opt nat64;
+};
+
+type function = variant {
+  SatRange:           record { utxo           : utxo;           };
+  SatInfo:            record { ordinal        : nat64;          };
+  SatInscriptions:    record { ordinal        : nat64;          };
+  InscriptionInfo:    record { inscription_id : inscription_id; };
+  InscriptionContent: record { inscription_id : inscription_id; };
+  Brc20Details:       record { ticker         : ticker;         };
+  Brc20Holders:       record { ticker         : ticker;         };
+};
+
+type query_options = record {
+  limit: nat64;
+  offset: nat64;
+};
+
+type response = variant {
+  SatRange: bitgem_sat_ranges;
+  SatInfo: sat_info;
+  SatInscriptions: hiro_sat_inscriptions;
+  InscriptionInfo: hiro_sat_inscription;
+  InscriptionContent: inscription_content;
+  Brc20Details: brc20_details;
+  Brc20Holders: brc20_holders;
+};
+
 type utxo = record {
   txid: text;
   vout: nat32;
@@ -25,18 +56,21 @@ type bitgem_exotic_sat_range = record {
   satributes : vec text;
 };
 
-type hiro_ordinal_info = record {
-  coinbase_height: nat64;
+type satoshi_rarity = variant {
+  Common;
+  Uncommon;
+  Rare;
+  Epic;
+  Legendary;
+  Mythic;
+};
+
+type sat_info = record {
+  height: nat64;
   cycle: nat64;
-  decimal: text;
-  degree: text;
-  inscription_id: opt text;
   epoch: nat64;
-  name: text;
-  offset: nat64;
-  percentile: text;
   period: nat64;
-  rarity: text;
+  rarity: satoshi_rarity;
 };
 
 type hiro_sat_inscription = record {
@@ -117,55 +151,106 @@ type brc20_holder = record {
   overall_balance: text;
 };
 
+type rejection_code = variant {
+  NoError;
+  SysFatal;
+  SysTransient;
+  DestinationInvalid;
+  CanisterReject;
+  CanisterError;
+  Unknown;
+};
+
+type http_send_error = record {
+  rejection_code: rejection_code;
+};
+
+type ord_error = variant {
+  HttpSendError: http_send_error;
+  CandidEncodingError: text;
+  CandidDecodingError: text;
+  NoServiceError: record { provider: provider; end_point: end_point; };
+  UnexpectedResponseTypeError: response;
+};
+
+type multi_ord_result = variant {
+  Consistent: response_result;
+  Inconsistent: vec record { provider: provider; result: response_result; };
+};
+
+type provider = variant {
+  Hiro;
+  Bitgem;
+};
+
+type end_point = variant {
+  SatRange;
+  SatInfo;
+  SatInscriptions;
+  InscriptionInfo;
+  InscriptionContent;
+  Brc20Details;
+  Brc20Holders;
+};
+
+type response_result = variant {
+  Ok: response;
+  Err: ord_error;
+};
+
 type sat_range_result = variant {
   Ok: bitgem_sat_ranges;
-  Err: text;
+  Err: ord_error;
 };
 
 type sat_info_result = variant {
-  Ok: hiro_ordinal_info;
-  Err: text;
+  Ok: sat_info;
+  Err: ord_error;
 };
 
 type hiro_sat_inscriptions_result = variant {
   Ok: hiro_sat_inscriptions;
-  Err: text;
+  Err: ord_error;
 };
 
 type hiro_sat_inscription_result = variant {
   Ok: hiro_sat_inscription;
-  Err: text;
+  Err: ord_error;
 };
 
 type hiro_inscription_content_result = variant {
   Ok: inscription_content;
-  Err: text;
+  Err: ord_error;
 };
 
 type brc20_details_result = variant {
   Ok: brc20_details;
-  Err: text;
+  Err: ord_error;
 };
 
 type brc20_holders_result = variant {
   Ok: brc20_holders;
-  Err: text;
+  Err: ord_error;
 };
 
 service : () -> {
 
-  "sat_range"           : (utxo)           -> (sat_range_result);
+  "request"                  : (args)           -> (multi_ord_result);
 
-  "sat_info"            : (nat64)          -> (sat_info_result);
+  "bitgem_sat_range"         : (utxo)           -> (sat_range_result);
 
-  "sat_inscriptions"    : (nat64)          -> (hiro_sat_inscriptions_result);
+  "bitgem_sat_info"          : (nat64)          -> (sat_info_result);
 
-  "inscription_info"    : (inscription_id) -> (hiro_sat_inscription_result);
+  "hiro_sat_info"            : (nat64)          -> (sat_info_result);
 
-  "inscription_content" : (inscription_id) -> (hiro_inscription_content_result);
+  "hiro_sat_inscriptions"    : (nat64)          -> (hiro_sat_inscriptions_result);
 
-  "brc20_details"       : (ticker)         -> (brc20_details_result);
+  "hiro_inscription_info"    : (inscription_id) -> (hiro_sat_inscription_result);
 
-  "brc20_holders"       : (ticker)         -> (brc20_holders_result);
+  "hiro_inscription_content" : (inscription_id) -> (hiro_inscription_content_result);
+
+  "hiro_brc20_details"       : (ticker)         -> (brc20_details_result);
+
+  "hiro_brc20_holders"       : (ticker)         -> (brc20_holders_result);
   
 }

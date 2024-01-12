@@ -1,12 +1,9 @@
-use candid::{Deserialize, CandidType};
-
 use lazy_static::lazy_static;
 
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
 use crate::ONE_KIB;
-use crate::types::{Provider, EndPoint, BitgemSatRanges, HiroSatInfo, HiroSatInscription, HiroSatInscriptions,
-    InscriptionContent, HiroBrc20Details, HiroBrc20Holders, Args, Function, QueryOptions};
+use crate::types::{Provider, EndPoint, Args, Function, Response, QueryOptions};
 
 use std::collections::BTreeMap;
 use std::vec;
@@ -15,6 +12,7 @@ mod bitgem;
 mod hiro;
 
 use bitgem::sat_range::ServiceBitgemSatRange;
+use bitgem::sat_info::ServiceBitgemSatInfo;
 use hiro::sat_info::ServiceHiroSatInfo;
 use hiro::sat_inscriptions::ServiceHiroSatInscriptions;
 use hiro::inscription_info::ServiceHiroInscriptionInfo;
@@ -22,20 +20,10 @@ use hiro::inscription_content::ServiceHiroInscriptionContent;
 use hiro::brc20_details::ServiceBrc20Details;
 use hiro::brc20_holders::ServiceBrc20Holders;
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub enum Response {
-    SatRange(BitgemSatRanges),
-    SatInfo(HiroSatInfo),
-    SatInscriptions(HiroSatInscriptions),
-    SatInscription(HiroSatInscription),
-    InscriptionContent(InscriptionContent),
-    Brc20Details(HiroBrc20Details),
-    Brc20Holders(HiroBrc20Holders)
-}
-
 pub enum Service {
     SatRange(ServiceBitgemSatRange),
-    SatInfo(ServiceHiroSatInfo),
+    BitgemSatInfo(ServiceBitgemSatInfo),
+    HiroSatInfo(ServiceHiroSatInfo),
     SatInscriptions(ServiceHiroSatInscriptions),
     InscriptionInfo(ServiceHiroInscriptionInfo),
     InscriptionContent(ServiceHiroInscriptionContent),
@@ -48,7 +36,7 @@ pub fn default_args(function: Function) -> Args {
         Function::SatRange{ utxo: _ } => Args {
             function,
             query_options: None,
-            max_kb_per_item: None,
+            max_kb_per_item: Some(1),
         },
         Function::SatInfo{ ordinal: _ } => Args {
             function,
@@ -116,7 +104,8 @@ impl IsService for Service {
     fn get_url(&self, args: Args) -> String {
         match self {
             Service::SatRange          (service) => service.get_url(args),
-            Service::SatInfo           (service) => service.get_url(args),
+            Service::BitgemSatInfo     (service) => service.get_url(args),
+            Service::HiroSatInfo       (service) => service.get_url(args),
             Service::SatInscriptions   (service) => service.get_url(args),
             Service::InscriptionInfo   (service) => service.get_url(args),
             Service::InscriptionContent(service) => service.get_url(args),
@@ -128,7 +117,8 @@ impl IsService for Service {
     fn get_body(&self, args: Args) -> Option<Vec<u8>> {
         match self {
             Service::SatRange          (service) => service.get_body(args),
-            Service::SatInfo           (service) => service.get_body(args),
+            Service::BitgemSatInfo     (service) => service.get_body(args),
+            Service::HiroSatInfo       (service) => service.get_body(args),
             Service::SatInscriptions   (service) => service.get_body(args),
             Service::InscriptionInfo   (service) => service.get_body(args),
             Service::InscriptionContent(service) => service.get_body(args),
@@ -140,7 +130,8 @@ impl IsService for Service {
     fn get_headers(&self) -> Vec<(String, String)> {
         match self {
             Service::SatRange          (service) => service.get_headers(),
-            Service::SatInfo           (service) => service.get_headers(),
+            Service::BitgemSatInfo     (service) => service.get_headers(),
+            Service::HiroSatInfo       (service) => service.get_headers(),
             Service::SatInscriptions   (service) => service.get_headers(),
             Service::InscriptionInfo   (service) => service.get_headers(),
             Service::InscriptionContent(service) => service.get_headers(),
@@ -152,7 +143,8 @@ impl IsService for Service {
     fn get_method(&self) -> HttpMethod {
         match self {
             Service::SatRange          (service) => service.get_method(),
-            Service::SatInfo           (service) => service.get_method(),
+            Service::BitgemSatInfo     (service) => service.get_method(),
+            Service::HiroSatInfo       (service) => service.get_method(),
             Service::SatInscriptions   (service) => service.get_method(),
             Service::InscriptionInfo   (service) => service.get_method(),
             Service::InscriptionContent(service) => service.get_method(),
@@ -164,7 +156,8 @@ impl IsService for Service {
     fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
         match self {
             Service::SatRange          (service) => service.extract_response(bytes),
-            Service::SatInfo           (service) => service.extract_response(bytes),
+            Service::BitgemSatInfo     (service) => service.extract_response(bytes),
+            Service::HiroSatInfo       (service) => service.extract_response(bytes),
             Service::SatInscriptions   (service) => service.extract_response(bytes),
             Service::InscriptionInfo   (service) => service.extract_response(bytes),
             Service::InscriptionContent(service) => service.extract_response(bytes),
@@ -187,7 +180,8 @@ lazy_static! {
     pub static ref SERVICES: BTreeMap<(Provider, EndPoint), Service> = {
         let mut map = BTreeMap::new();
         map.insert((Provider::Bitgem, EndPoint::SatRange          ), Service::SatRange          (ServiceBitgemSatRange        ));
-        map.insert((Provider::Hiro  , EndPoint::SatInfo           ), Service::SatInfo           (ServiceHiroSatInfo           ));
+        map.insert((Provider::Bitgem, EndPoint::SatInfo           ), Service::BitgemSatInfo     (ServiceBitgemSatInfo         ));
+        map.insert((Provider::Hiro  , EndPoint::SatInfo           ), Service::HiroSatInfo       (ServiceHiroSatInfo           ));
         map.insert((Provider::Hiro  , EndPoint::SatInscriptions   ), Service::SatInscriptions   (ServiceHiroSatInscriptions   ));
         map.insert((Provider::Hiro  , EndPoint::InscriptionInfo   ), Service::InscriptionInfo   (ServiceHiroInscriptionInfo   ));
         map.insert((Provider::Hiro  , EndPoint::InscriptionContent), Service::InscriptionContent(ServiceHiroInscriptionContent));
@@ -195,4 +189,22 @@ lazy_static! {
         map.insert((Provider::Hiro  , EndPoint::Brc20Holders      ), Service::Brc20Holders      (ServiceBrc20Holders          ));
         map
     };
+}
+
+// Return the services that are available for the given function
+pub fn get_available(function: Function) -> Vec<(Provider, EndPoint)> {
+    let end_point = match function {
+        Function::SatRange{ utxo: _ }                     => EndPoint::SatRange,
+        Function::SatInfo{ ordinal: _ }                   => EndPoint::SatInfo,
+        Function::SatInscriptions{ ordinal: _ }           => EndPoint::SatInscriptions,
+        Function::InscriptionInfo{ inscription_id: _ }    => EndPoint::InscriptionInfo,
+        Function::InscriptionContent{ inscription_id: _ } => EndPoint::InscriptionContent,
+        Function::Brc20Details{ ticker: _ }               => EndPoint::Brc20Details,
+        Function::Brc20Holders{ ticker: _ }               => EndPoint::Brc20Holders,
+    };
+    SERVICES
+        .iter()
+        .filter(|(key, _)| key.1 == end_point)
+        .map(|(key, _)| key.clone())
+        .collect()
 }

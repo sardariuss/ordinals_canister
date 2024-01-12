@@ -1,5 +1,29 @@
 use candid::{CandidType, Deserialize};
 
+use ic_cdk::api::call::RejectionCode;
+
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
+pub struct HttpSendError {
+    pub rejection_code: RejectionCode,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
+pub enum OrdError {
+    HttpSendError(HttpSendError),
+    CandidEncodingError(String),
+    CandidDecodingError(String),
+    NoServiceError{ provider: Provider, end_point: EndPoint },
+    UnexpectedResponseTypeError(Response),
+}
+
+pub type OrdResult = Result<Response, OrdError>;
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+pub enum MultiOrdResult {
+    Consistent(OrdResult),
+    Inconsistent(Vec<(Provider, OrdResult)>),
+}
+
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize, Copy, Clone)]
 pub enum Provider {
     Hiro,
@@ -55,20 +79,32 @@ pub enum EndPoint {
     Brc20Holders,
 }
 
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
+pub enum Response {
+    SatRange(BitgemSatRanges),
+    SatInfo(SatInfo),
+    SatInscriptions(HiroSatInscriptions),
+    InscriptionInfo(HiroSatInscription),
+    InscriptionContent(InscriptionContent),
+    Brc20Details(HiroBrc20Details),
+    Brc20Holders(HiroBrc20Holders)
+}
+
+
 #[derive(Debug, CandidType, Deserialize, Clone)]
 pub struct Utxo {
     pub txid: String,
     pub vout: u32,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 #[allow(non_snake_case)]
 pub struct BitgemSatRanges {
     pub ranges : Vec<BitgemSatRange>,
     pub exoticRanges : Vec<BitgemExoticSatRange>,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct BitgemSatRange {
     pub utxo : String,
     pub start : u64,
@@ -77,7 +113,7 @@ pub struct BitgemSatRange {
     pub offset : u64,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct BitgemExoticSatRange {
     pub utxo : String,
     pub start : u64,
@@ -87,7 +123,7 @@ pub struct BitgemExoticSatRange {
     pub satributes : Vec<String>,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroSatInfo {
     pub coinbase_height: u64,           // 8 bytes
     pub cycle: u64,                     // 8 bytes
@@ -103,7 +139,7 @@ pub struct HiroSatInfo {
 }
 // total bytes: 8 + 8 + 32 + 64 + 128 + 8 + 32 + 8 + 64 = 352 bytes
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct BitgemSatInfo {
     pub sat: u64,
     pub height: u64,
@@ -114,7 +150,7 @@ pub struct BitgemSatInfo {
 }
 
 // Satoshi rarity
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub enum SatoshiRarity {
     Common,
     Uncommon,
@@ -125,7 +161,7 @@ pub enum SatoshiRarity {
 }
 
 // Common ordinal info struct, contains the fiels that are common to both (intersecting)
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct SatInfo {
     pub height: u64,
     pub cycle: u64,
@@ -140,7 +176,7 @@ pub struct HiroInscriptionContentArgs {
     pub max_content_kb: u64,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroSatInscription {
     pub id: String,
     pub number: i64,
@@ -168,7 +204,7 @@ pub struct HiroSatInscription {
     pub recursion_refs: Option<Vec<String>>,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroSatInscriptions {
     pub limit: u64,
     pub offset: u64,
@@ -184,13 +220,13 @@ pub struct HiroSatInscriptionsArgs {
 
 pub type InscriptionContent = Vec<u8>;
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroBrc20Details {
     pub token: HiroBrc20Token,
     pub supply: HiroBrc20Supply,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroBrc20Token {
     pub id: String,
     pub number: u64,
@@ -206,14 +242,14 @@ pub struct HiroBrc20Token {
     pub tx_count: u64,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroBrc20Supply {
     pub max_supply: String,
     pub minted_supply: String,
     pub holders: u64,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroBrc20Holders {
     pub limit: u64,
     pub offset: u64,
@@ -221,7 +257,7 @@ pub struct HiroBrc20Holders {
     pub results: Vec<HiroBrc20Holder>,
 }
 
-#[derive(Clone, Debug, CandidType, Deserialize)]
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroBrc20Holder {
     pub address: String,
     pub overall_balance: String,

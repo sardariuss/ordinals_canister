@@ -5,9 +5,9 @@ mod utils;
 
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 
-use services::{SERVICES, default_args, unwrap_max_response_bytes, Response};
-use types::{Utxo, BitgemSatRanges, HiroSatInfo, HiroSatInscription, HiroSatInscriptions, Provider, Function, Args,
-    EndPoint, HiroBrc20Details, HiroBrc20Holders};
+use services::{SERVICES, default_args, unwrap_max_response_bytes, get_available};
+use types::{Utxo, BitgemSatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provider, Function, Args,
+    EndPoint, Response, OrdResult, OrdError, MultiOrdResult, HiroBrc20Details, HiroBrc20Holders};
 
 use crate::http::CanisterHttpRequest;
 use crate::services::IsService;
@@ -24,15 +24,32 @@ pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000; // Used to be 400_000_00
 pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // Used to be 100_000
 
 #[ic_cdk::update]
-async fn request(args: Args) -> Result<Response, String> {
-    
-    // @todo: provider and endpoint shall not be hardcoded but deduced from the args
-    // @todo: should return a MultipleResult
-    call_service(Provider::Bitgem, EndPoint::SatRange, args).await
+async fn request(args: Args) -> MultiOrdResult {
+
+    let available = get_available(args.clone().function);
+
+    let mut results = vec![];
+
+    // TODO: parallelize the calls
+    for (provider, end_point) in available {
+        let response = call_service(provider, end_point, args.clone()).await;
+        results.push((provider, response));
+    }
+
+    if let Some(first) = results.first() {
+        let equal = results.iter().all(|result| result.1 == first.1);
+        if equal {
+            return MultiOrdResult::Consistent(first.1.clone());
+        } else {
+            return MultiOrdResult::Inconsistent(results);
+        }
+    } else {
+        panic!("No service available for this function");
+    }
 }
 
 #[ic_cdk::update]
-async fn sat_range(utxo: Utxo) -> Result<BitgemSatRanges, String> {
+async fn bitgem_sat_range(utxo: Utxo) -> Result<BitgemSatRanges, OrdError> {
 
     call_service(Provider::Bitgem, EndPoint::SatRange, default_args(Function::SatRange { utxo })).await.map(|response| {
         match response {
@@ -43,7 +60,18 @@ async fn sat_range(utxo: Utxo) -> Result<BitgemSatRanges, String> {
 }
 
 #[ic_cdk::update]
-async fn sat_info(ordinal: u64) -> Result<HiroSatInfo, String> {
+async fn bitgem_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
+
+    call_service(Provider::Bitgem, EndPoint::SatInfo, default_args(Function::SatInfo { ordinal })).await.map(|response| {
+        match response {
+            Response::SatInfo(ordinal_info) => ordinal_info,
+            _ => panic!("Unexpected response type"),
+        }
+    })
+}
+
+#[ic_cdk::update]
+async fn hiro_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::SatInfo, default_args(Function::SatInfo { ordinal })).await.map(|response| {
         match response {
@@ -54,7 +82,7 @@ async fn sat_info(ordinal: u64) -> Result<HiroSatInfo, String> {
 }
 
 #[ic_cdk::update]
-async fn sat_inscriptions(ordinal: u64) -> Result<HiroSatInscriptions, String> {
+async fn hiro_sat_inscriptions(ordinal: u64) -> Result<HiroSatInscriptions, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::SatInscriptions, default_args(Function::SatInscriptions { ordinal })).await.map(|response| {
         match response {
@@ -65,18 +93,18 @@ async fn sat_inscriptions(ordinal: u64) -> Result<HiroSatInscriptions, String> {
 }
 
 #[ic_cdk::update]
-async fn inscription_info(inscription_id: String) -> Result<HiroSatInscription, String> {
+async fn hiro_inscription_info(inscription_id: String) -> Result<HiroSatInscription, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::InscriptionInfo, default_args(Function::InscriptionInfo { inscription_id })).await.map(|response| {
         match response {
-            Response::SatInscription(inscription) => inscription,
+            Response::InscriptionInfo(inscription) => inscription,
             _ => panic!("Unexpected response type"),
         }
     })
 }
 
 #[ic_cdk::update]
-async fn inscription_content(inscription_id: String) -> Result<Vec<u8>, String> {
+async fn hiro_inscription_content(inscription_id: String) -> Result<Vec<u8>, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::InscriptionContent, default_args(Function::InscriptionContent { inscription_id })).await.map(|response| {
         match response {
@@ -87,7 +115,7 @@ async fn inscription_content(inscription_id: String) -> Result<Vec<u8>, String> 
 }
 
 #[ic_cdk::update]
-async fn brc20_details(ticker: String) -> Result<HiroBrc20Details, String> {
+async fn hiro_brc20_details(ticker: String) -> Result<HiroBrc20Details, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::Brc20Details, default_args(Function::Brc20Details { ticker })).await.map(|response| {
         match response {
@@ -98,7 +126,7 @@ async fn brc20_details(ticker: String) -> Result<HiroBrc20Details, String> {
 }
 
 #[ic_cdk::update]
-async fn brc20_holders(ticker: String) -> Result<HiroBrc20Holders, String> {
+async fn hiro_brc20_holders(ticker: String) -> Result<HiroBrc20Holders, OrdError> {
 
     call_service(Provider::Hiro, EndPoint::Brc20Holders, default_args(Function::Brc20Holders { ticker })).await.map(|response| {
         match response {
@@ -112,7 +140,7 @@ async fn call_service(
     provider: Provider,
     end_point: EndPoint,
     args: Args,
-) -> Result<Response, String> {
+) -> OrdResult {
 
     if let Some(service) = SERVICES.get(&(provider, end_point)) {
 
@@ -123,7 +151,7 @@ async fn call_service(
         let max_response_bytes = unwrap_max_response_bytes(args);
 
         let context = candid::encode_args((provider, end_point))
-            .map_err(|error| format!("Failure while encoding context: {}", error))?;
+            .map_err(|error| OrdError::CandidEncodingError(format!("Failure while encoding context: {}", error)))?;
 
         let cycles = get_http_request_cost(
             url.as_str(),
@@ -139,16 +167,17 @@ async fn call_service(
             .transform_context("transform_http_response", context)
             .max_response_bytes(max_response_bytes)
             .send(cycles)
-            .await?;
+            .await
+            .map_err(|error| OrdError::HttpSendError(error))?;
 
         let response = candid::decode_args::<(Response,)>(response.body.as_slice())
             .map(|decoded| decoded.0)
-            .map_err(|error| format!("Failure while decoding response: {}", error))?;
+            .map_err(|error| OrdError::CandidDecodingError(format!("Failure while decoding response: {}", error)))?;
 
         return Ok(response);
     }
 
-    Err("No service associated for given provider and endpoint".to_string())
+    Err(OrdError::NoServiceError{ provider, end_point })
 }
 
 #[ic_cdk::query]

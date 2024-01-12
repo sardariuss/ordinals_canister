@@ -26,6 +26,6 @@ impl IsService for ServiceHiroInscriptionInfo {
     fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
         let sat_inscriptions = serde_json::from_slice::<HiroSatInscription>(bytes)
             .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
-        Ok(Response::SatInscription(sat_inscriptions))
+        Ok(Response::InscriptionInfo(sat_inscriptions))
     }
 }
