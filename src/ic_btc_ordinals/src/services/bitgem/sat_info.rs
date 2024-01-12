@@ -41,3 +41,38 @@ impl IsService for ServiceBitgemSatInfo {
     }
 }
 
+#[test]
+fn test_build_request() {
+    let service = ServiceBitgemSatInfo;
+    let args = Args {
+        function: Function::SatInfo{ ordinal: 85000000000 },
+        query_options: None,
+        max_kb_per_item: None,
+    };
+    assert_eq!(service.get_url(args.clone()), "https://api.bitgem.tech/sat/85000000000");
+    assert_eq!(service.get_body(args), None);
+    assert_eq!(service.get_headers(), vec![]);
+    assert_eq!(service.get_method(), super::super::HttpMethod::GET);
+}
+
+#[test]
+fn test_extract_response() {
+    let service = ServiceBitgemSatInfo;
+    let bytes = r#"{
+        "sat":85000000000,
+        "height":17,
+        "cycle":0,
+        "epoch":0,
+        "period":0,
+        "satributes":["uncommon","alpha","vintage"]
+    }"#.as_bytes();
+    let response = service.extract_response(bytes).unwrap();
+    assert_eq!(response, Response::SatInfo(SatInfo {
+        height: 17,
+        cycle: 0,
+        epoch: 0,
+        period: 0,
+        rarity: crate::types::SatoshiRarity::Uncommon,
+    }));
+}
+

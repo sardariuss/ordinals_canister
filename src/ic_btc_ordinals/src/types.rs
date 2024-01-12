@@ -125,19 +125,18 @@ pub struct BitgemExoticSatRange {
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct HiroSatInfo {
-    pub coinbase_height: u64,           // 8 bytes
-    pub cycle: u64,                     // 8 bytes
-    pub decimal: String,                // assumed max 32 bytes, like "51483.3248345364"
-    pub degree: String,                 // assumed max 64 bytes, like "0°51483′1083″3248345364‴"
-    pub inscription_id: Option<String>, // assumed max 128 bytes, like "38c46a8bf7ec90bc7f6b797e7dc84baa97f4e5fd4286b92fe1b50176d03b18dci0"
-    pub epoch: u64,                     // 8 bytes
-    pub name: String,                   // assumed max 128 bytes
-    pub offset: u64,                    // 8 bytes
-    pub percentile: String,             // assumed max 32 bytes "12.258011839453534%"
-    pub period: u64,                    // 8 bytes
-    pub rarity: String,                 // assumed max 64 bytes, like "0°51483′1083″3248345364‴"
+    pub coinbase_height: u64,
+    pub cycle: u64,
+    pub decimal: String,
+    pub degree: String,
+    pub inscription_id: Option<String>,
+    pub epoch: u64,
+    pub name: String,
+    pub offset: u64,
+    pub percentile: String,
+    pub period: u64,
+    pub rarity: String,
 }
-// total bytes: 8 + 8 + 32 + 64 + 128 + 8 + 32 + 8 + 64 = 352 bytes
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct BitgemSatInfo {
@@ -149,7 +148,6 @@ pub struct BitgemSatInfo {
     pub satributes: Vec<String>,
 }
 
-// Satoshi rarity
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub enum SatoshiRarity {
     Common,
@@ -160,7 +158,7 @@ pub enum SatoshiRarity {
     Mythic,
 }
 
-// Common ordinal info struct, contains the fiels that are common to both (intersecting)
+// Common ordinal info struct, contains the fiels that are common to all providers
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub struct SatInfo {
     pub height: u64,
