@@ -21,12 +21,6 @@ impl IsService for ServiceBitgemSatRange {
         Some(body_json.as_bytes().to_vec())
     }
 
-    fn get_headers(&self) -> Vec<(String, String)> {
-        vec![
-            ("Content-Type".to_string(), "application/json".to_string()),
-        ]
-    }
-
     fn get_method(&self) -> HttpMethod {
         HttpMethod::POST
     }
@@ -56,7 +50,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.bitgem.tech/utxo-ranges");
     assert_eq!(service.get_body(args), Some(r#"{"utxos": ["3de53b46b6a2bbf38587ac3cfc055eb2e960a8d25ff1361f2f15ef2bee9168aa:0"]}"#.as_bytes().to_vec()));
-    assert_eq!(service.get_headers(), vec![("Content-Type".to_string(), "application/json".to_string())]);
     assert_eq!(service.get_method(), HttpMethod::POST);
 }
 

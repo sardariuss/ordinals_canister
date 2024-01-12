@@ -51,7 +51,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.bitgem.tech/sat/85000000000");
     assert_eq!(service.get_body(args), None);
-    assert_eq!(service.get_headers(), vec![]);
     assert_eq!(service.get_method(), super::super::HttpMethod::GET);
 }
 

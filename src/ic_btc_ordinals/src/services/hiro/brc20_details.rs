@@ -40,7 +40,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/brc-20/tokens/ordi");
     assert_eq!(service.get_body(args), None);
-    assert_eq!(service.get_headers(), vec![]);
     assert_eq!(service.get_method(), super::super::HttpMethod::GET);
 }
 

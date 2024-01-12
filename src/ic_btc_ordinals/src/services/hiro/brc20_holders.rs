@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, unwrap_query_options, BASE_URLS};
 
-use crate::types::{Provider, HiroBrc20Holders, QueryOptions};
+use crate::types::{Provider, HiroBrc20Holders};
 use std::ops::Add;
 
 pub struct ServiceBrc20Holders;
@@ -35,6 +35,9 @@ impl IsService for ServiceBrc20Holders {
 
 #[test]
 fn test_build_request() {
+
+    use crate::types::QueryOptions;
+
     let service = ServiceBrc20Holders;
     let args = Args {
         function: Function::Brc20Holders{ ticker: "ordi".to_string() },
@@ -43,7 +46,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/brc-20/tokens/ordi/holders?offset=2&limit=5");
     assert_eq!(service.get_body(args), None);
-    assert_eq!(service.get_headers(), vec![]);
     assert_eq!(service.get_method(), super::super::HttpMethod::GET);
 }
 
@@ -79,6 +81,7 @@ fn test_extract_response() {
           }
         ]
       }"#.as_bytes();
+    
     let response = ServiceBrc20Holders.extract_response(bytes).unwrap();
     assert_eq!(response, Response::Brc20Holders(HiroBrc20Holders {
         limit: 5,

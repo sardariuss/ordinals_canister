@@ -146,7 +146,6 @@ async fn call_service(
 
         let url = service.get_url(args.clone());
         let http_method = service.get_method();
-        let headers = service.get_headers();
         let body = service.get_body(args.clone());
         let max_response_bytes = unwrap_max_response_bytes(args);
 
@@ -162,7 +161,6 @@ async fn call_service(
         let response = CanisterHttpRequest::new()
             .url(url.as_str())
             .method(http_method)
-            .add_headers(headers)
             .body(body)
             .transform_context("transform_http_response", context)
             .max_response_bytes(max_response_bytes)

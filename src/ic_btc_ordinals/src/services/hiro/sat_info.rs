@@ -46,7 +46,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/sats/85000000000");
     assert_eq!(service.get_body(args), None);
-    assert_eq!(service.get_headers(), vec![]);
     assert_eq!(service.get_method(), super::super::HttpMethod::GET);
 }
 

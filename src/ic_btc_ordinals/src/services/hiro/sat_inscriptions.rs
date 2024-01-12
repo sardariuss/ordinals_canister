@@ -46,7 +46,6 @@ fn test_build_request() {
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/sats/947410401228752/inscriptions?offset=0&limit=2");
     assert_eq!(service.get_body(args), None);
-    assert_eq!(service.get_headers(), vec![]);
     assert_eq!(service.get_method(), super::super::HttpMethod::GET);
 }
 

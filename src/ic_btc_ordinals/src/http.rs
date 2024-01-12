@@ -28,10 +28,16 @@ impl CanisterHttpRequest {
             args: CanisterHttpRequestArgument {
                 url: Default::default(),
                 max_response_bytes: Default::default(),
-                headers: vec![HttpHeader { //@todo: add application/json here?
-                    name: "User-Agent".to_string(),
-                    value: "BTC Ordinals Canister".to_string(),
-                }],
+                headers: vec![
+                    HttpHeader {
+                        name: "User-Agent".to_string(),
+                        value: "BTC Ordinals Canister".to_string(),
+                    },
+                    HttpHeader {
+                        name: "Content-Type".to_string(),
+                        value: "application/json".to_string(),
+                    },
+                ],
                 body: Default::default(),
                 method: HttpMethod::GET,
                 transform: None,
@@ -42,17 +48,6 @@ impl CanisterHttpRequest {
     /// Updates the HTTP method in the `args` field.
     pub fn method(mut self, http_method: HttpMethod) -> Self {
         self.args.method = http_method;
-        self
-    }
-
-    /// Adds HTTP headers for the request
-    pub fn add_headers(mut self, headers: Vec<(String, String)>) -> Self {
-        self.args
-            .headers
-            .extend(headers.iter().map(|(name, value)| HttpHeader {
-                name: name.to_string(),
-                value: value.to_string(),
-            }));
         self
     }
 

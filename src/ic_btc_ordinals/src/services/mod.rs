@@ -6,7 +6,6 @@ use crate::ONE_KIB;
 use crate::types::{Provider, EndPoint, Args, Function, Response, QueryOptions};
 
 use std::collections::BTreeMap;
-use std::vec;
 
 mod bitgem;
 mod hiro;
@@ -51,22 +50,22 @@ pub fn default_args(function: Function) -> Args {
         Function::InscriptionInfo{ inscription_id: _ } => Args {
             function,
             query_options: None,
-            max_kb_per_item: Some(2), // @todo
+            max_kb_per_item: Some(2), // 2 kiB (same as above)
         },
         Function::InscriptionContent{ inscription_id: _ } => Args {
             function,
             query_options: None,
-            max_kb_per_item: Some(5), // @todo
+            max_kb_per_item: Some(5), // 5 KiB, set arbitrarily because the size of the inscription content can vary
         },
         Function::Brc20Details{ ticker: _ } => Args {
             function,
             query_options: None,
-            max_kb_per_item: Some(2), // @todo
+            max_kb_per_item: Some(2), // 2 KiB should be enough for a single brc20 details, the size of the response body is approximatly 800 bytes
         },
         Function::Brc20Holders{ ticker: _ } => Args {
             function,
             query_options: Some(QueryOptions{ offset: 0, limit: 10 }),
-            max_kb_per_item: Some(2), // @todo
+            max_kb_per_item: Some(1), // 1 Kib should be more than enough for a single brc20 holder, the size of the response body is approximatly 200 bytes
         },
     }
 }
@@ -86,10 +85,6 @@ pub trait IsService {
     
     fn get_body(&self, _: Args) -> Option<Vec<u8>> {
         None
-    }
-
-    fn get_headers(&self) -> Vec<(String, String)> {
-        vec![]
     }
 
     fn get_method(&self) -> HttpMethod {
@@ -124,19 +119,6 @@ impl IsService for Service {
             Service::InscriptionContent(service) => service.get_body(args),
             Service::Brc20Details      (service) => service.get_body(args),
             Service::Brc20Holders      (service) => service.get_body(args),
-        }
-    }
-
-    fn get_headers(&self) -> Vec<(String, String)> {
-        match self {
-            Service::SatRange          (service) => service.get_headers(),
-            Service::BitgemSatInfo     (service) => service.get_headers(),
-            Service::HiroSatInfo       (service) => service.get_headers(),
-            Service::SatInscriptions   (service) => service.get_headers(),
-            Service::InscriptionInfo   (service) => service.get_headers(),
-            Service::InscriptionContent(service) => service.get_headers(),
-            Service::Brc20Details      (service) => service.get_headers(),
-            Service::Brc20Holders      (service) => service.get_headers(),
         }
     }
 
