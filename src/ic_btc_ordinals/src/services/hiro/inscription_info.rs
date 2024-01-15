@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, BASE_URLS};
 
-use crate::types::{Provider, HiroSatInscription};
+use crate::{types::{Provider, HiroSatInscription, OrdResult}, utils::deserialize_response};
 use std::ops::Add;
 
 pub struct ServiceHiroInscriptionInfo;
@@ -23,9 +23,8 @@ impl IsService for ServiceHiroInscriptionInfo {
             )
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
-        let sat_inscriptions = serde_json::from_slice::<HiroSatInscription>(bytes)
-            .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
+        let sat_inscriptions = deserialize_response::<HiroSatInscription>(bytes)?;
         Ok(Response::InscriptionInfo(sat_inscriptions))
     }
 }

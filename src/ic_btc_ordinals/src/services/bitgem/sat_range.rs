@@ -2,7 +2,7 @@ use super::super::{IsService, Args, Response, Function, BASE_URLS};
 
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
-use crate::types::{Provider, BitgemSatRanges};
+use crate::{types::{Provider, BitgemSatRanges, OrdResult}, utils::deserialize_response};
 
 pub struct ServiceBitgemSatRange;
 
@@ -25,9 +25,8 @@ impl IsService for ServiceBitgemSatRange {
         HttpMethod::POST
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
-        let sat_ranges = serde_json::from_slice::<BitgemSatRanges>(bytes)
-            .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
+        let sat_ranges = deserialize_response::<BitgemSatRanges>(bytes)?;
         Ok(Response::SatRange(sat_ranges))
     }
 }

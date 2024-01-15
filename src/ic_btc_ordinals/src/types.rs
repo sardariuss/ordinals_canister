@@ -10,8 +10,11 @@ pub struct HttpSendError {
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub enum OrdError {
     HttpSendError(HttpSendError),
-    CandidEncodingError(String),
-    CandidDecodingError(String),
+    ResponseError(String),
+    ResponseEncodingError(String),
+    ResponseDecodingError(String),
+    ContextEncodingError(String),
+    ContextDecodingError(String),
     NoServiceError { 
         provider: Provider, 
         end_point: EndPoint 
@@ -279,4 +282,9 @@ pub struct HiroBrc20HoldersArgs {
     pub ticker: String,
     pub limit: u64,
     pub offset: u64,
+}
+
+#[derive(Deserialize)]
+pub struct JsonError {
+    pub error: String,
 }

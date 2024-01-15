@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, BASE_URLS};
 
-use crate::types::Provider;
+use crate::types::{Provider, OrdResult};
 use std::ops::Add;
 
 pub struct ServiceHiroInscriptionContent;
@@ -23,7 +23,7 @@ impl IsService for ServiceHiroInscriptionContent {
             )
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
         Ok(Response::InscriptionContent(bytes.to_vec()))
     }
 }

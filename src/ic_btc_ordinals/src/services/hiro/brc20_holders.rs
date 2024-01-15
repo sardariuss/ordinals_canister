@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, unwrap_query_options, BASE_URLS};
 
-use crate::types::{Provider, HiroBrc20Holders};
+use crate::{types::{Provider, HiroBrc20Holders, OrdResult}, utils::deserialize_response};
 use std::ops::Add;
 
 pub struct ServiceBrc20Holders;
@@ -26,9 +26,8 @@ impl IsService for ServiceBrc20Holders {
             )
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
-        let brc20_details = serde_json::from_slice::<HiroBrc20Holders>(bytes)
-            .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
+        let brc20_details = deserialize_response::<HiroBrc20Holders>(bytes)?;
         Ok(Response::Brc20Holders(brc20_details))
     }
 }

@@ -167,8 +167,11 @@ type http_send_error = record {
 
 type ord_error = variant {
   HttpSendError: http_send_error;
-  CandidEncodingError: text;
-  CandidDecodingError: text;
+  ResponseError: text;
+  ResponseEncodingError: text;
+  ResponseDecodingError: text;
+  ContextEncodingError: text;
+  ContextDecodingError: text;
   NoServiceError: record { provider: provider; end_point: end_point; };
   TooFewCycles: record { expected: nat; received: nat; };
   UnexpectedResponseTypeError: response;

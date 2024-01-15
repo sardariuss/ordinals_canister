@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, BASE_URLS};
 
-use crate::{types::{Provider, BitgemSatInfo, SatInfo}, utils::map_str_rarity};
+use crate::{types::{Provider, BitgemSatInfo, SatInfo, OrdResult, OrdError}, utils::{map_str_rarity, deserialize_response}};
 
 use std::ops::Add;
 
@@ -21,9 +21,8 @@ impl IsService for ServiceBitgemSatInfo {
             )
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
-        let bitgem_sat_info = serde_json::from_slice::<BitgemSatInfo>(bytes)
-            .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
+        let bitgem_sat_info = deserialize_response::<BitgemSatInfo>(bytes)?;
         let rarities : Vec<_> = bitgem_sat_info.satributes
             .iter()
             .filter_map(|satribute| map_str_rarity(&satribute))
@@ -31,7 +30,9 @@ impl IsService for ServiceBitgemSatInfo {
         let rarity = match rarities.len() {
             0 => crate::types::SatoshiRarity::Common, // If no rarity is found, assume common
             1 => rarities[0].clone(),
-            _ => return Err(format!("Multiple rarities found in Bitgem satributes: {}", bitgem_sat_info.satributes.join(","))),
+            _ => return Err(OrdError::ResponseDecodingError(
+                    format!("Multiple rarities found in Bitgem satributes: {}", bitgem_sat_info.satributes.join(","))
+                )),
         };
         Ok(Response::SatInfo(SatInfo {
             height: bitgem_sat_info.height,

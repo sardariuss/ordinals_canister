@@ -176,15 +176,13 @@ async fn call_service(
     provider: Provider,
     end_point: EndPoint,
     args: Args,
-) -> Result<Response, OrdError> {
+) -> OrdResult {
 
     let (request, cycles) = prepare_request(provider, end_point, args.clone())?;
 
     pay_cycles(cycles).await?;
 
-    let response = execute_request(request, cycles).await?;
-
-    Ok(response)
+    execute_request(request, cycles).await
 }
 
 fn prepare_request(
@@ -201,7 +199,7 @@ fn prepare_request(
         let max_response_bytes = unwrap_max_response_bytes(args);
 
         let context = candid::encode_args((provider, end_point))
-            .map_err(|error| OrdError::CandidEncodingError(format!("Failure while encoding context: {}", error)))?;
+            .map_err(|error| OrdError::ContextEncodingError(format!("Failure while encoding context: {}", error)))?;
 
         let request = CanisterHttpRequest::new()
             .url(url.as_str())
@@ -241,43 +239,40 @@ async fn execute_request(
     request: CanisterHttpRequest,
     cycles: u128,
 ) -> OrdResult {    
-    let response = request
+    let http_response = request
         .send(cycles)
         .await
         .map_err(|error| OrdError::HttpSendError(error))?;
 
-    let response = candid::decode_args::<(Response,)>(response.body.as_slice())
+    candid::decode_args::<(OrdResult,)>(http_response.body.as_slice())
         .map(|decoded| decoded.0)
-        .map_err(|error| OrdError::CandidDecodingError(format!("Failure while decoding response: {}", error)))?;
-
-    return Ok(response);
+        .map_err(|error| OrdError::ResponseDecodingError(format!("Failure while decoding response: {}", error)))?
 }
 
 #[ic_cdk::query]
 fn transform_http_response(args: TransformArgs) -> HttpResponse {
+
     let mut sanitized = args.response;
+ 
+    let result: OrdResult = {
+        
+        let context_result = candid::decode_args::<(Provider, EndPoint)>(&args.context)
+            .map(|decoded| decoded);
 
-    let context_result = candid::decode_args::<(Provider, EndPoint)>(&args.context)
-        .map(|decoded| decoded);
-
-    let (provider, end_point) = match context_result {
-        Ok((provider, end_point)) => (provider, end_point),
-        Err(err) => ic_cdk::trap(&format!("Failed to decode context: {}", err)),
+        match context_result {
+            Err(err) => Err(OrdError::ContextDecodingError(format!("Failed to decode context: {}", err))),
+            Ok((provider, end_point)) => {
+                match SERVICES.get(&(provider, end_point)) {
+                    None => Err(OrdError::NoServiceError{ provider, end_point }),
+                    Some(service) => service.extract_response(&sanitized.body),
+                }
+            }
+        }
     };
 
-    let service = match SERVICES.get(&(provider, end_point)) {
-        Some(service) => service,
-        None => ic_cdk::trap(&format!("No service found for provider {:?} and endpoint {:?}", provider, end_point)),
-    };
-
-    let response = match service.extract_response(&sanitized.body) {
-        Ok(response) => response,
-        Err(err) => ic_cdk::trap(&format!("Failed to extract response: {}", err)),
-    };
-
-    let body = match candid::encode_args((response,)) {
+    let body = match candid::encode_args((result,)) {
         Ok(body) => body,
-        Err(err) => ic_cdk::trap(&format!("Failed to encode response: {}", err)),
+        Err(err) => ic_cdk::trap(&format!("Failed to encode response result: {}", err)),
     };
 
     sanitized.body = body;  

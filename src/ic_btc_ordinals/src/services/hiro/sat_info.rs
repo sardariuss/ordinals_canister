@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, Function, BASE_URLS};
 
-use crate::{types::{Provider, HiroSatInfo, SatInfo}, utils::map_str_rarity};
+use crate::{types::{Provider, HiroSatInfo, SatInfo, OrdResult, OrdError}, utils::{map_str_rarity, deserialize_response}};
 
 use std::ops::Add;
 
@@ -21,11 +21,10 @@ impl IsService for ServiceHiroSatInfo {
             )
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
-        let hiro_sat_info = serde_json::from_slice::<HiroSatInfo>(bytes)
-            .map_err(|err| format!("Failed to deserialize response bytes: {:?}", err))?;
+    fn extract_response(&self, bytes: &[u8]) -> OrdResult {
+        let hiro_sat_info = deserialize_response::<HiroSatInfo>(bytes)?;
         let rarity = map_str_rarity(&hiro_sat_info.rarity)
-            .ok_or(format!("Invalid rarity: {}", hiro_sat_info.rarity))?;
+            .ok_or(OrdError::ResponseDecodingError(format!("Invalid rarity: {}", hiro_sat_info.rarity)))?;
         Ok(Response::SatInfo(SatInfo {
             height: hiro_sat_info.coinbase_height,
             cycle: hiro_sat_info.cycle,

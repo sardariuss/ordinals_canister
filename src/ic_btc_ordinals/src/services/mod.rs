@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
 use crate::ONE_KIB;
-use crate::types::{Provider, EndPoint, Args, Function, Response, QueryOptions};
+use crate::types::{Provider, EndPoint, Args, Function, Response, OrdError, QueryOptions};
 
 use std::collections::BTreeMap;
 
@@ -91,7 +91,7 @@ pub trait IsService {
         HttpMethod::GET
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String>;
+    fn extract_response(&self, bytes: &[u8]) -> Result<Response, OrdError>;
 }
 
 impl IsService for Service {
@@ -135,7 +135,7 @@ impl IsService for Service {
         }
     }
 
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, String> {
+    fn extract_response(&self, bytes: &[u8]) -> Result<Response, OrdError> {
         match self {
             Service::SatRange          (service) => service.extract_response(bytes),
             Service::BitgemSatInfo     (service) => service.extract_response(bytes),
