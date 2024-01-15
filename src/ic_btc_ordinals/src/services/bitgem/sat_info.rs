@@ -28,15 +28,17 @@ impl IsService for ServiceBitgemSatInfo {
             .iter()
             .filter_map(|satribute| map_str_rarity(&satribute))
             .collect();
-        if rarities.len() != 1 {
-            return Err(format!("Cannot find rarity in Bitgem satributes: {}", bitgem_sat_info.satributes.join(",")));
-        }
+        let rarity = match rarities.len() {
+            0 => crate::types::SatoshiRarity::Common, // If no rarity is found, assume common
+            1 => rarities[0].clone(),
+            _ => return Err(format!("Multiple rarities found in Bitgem satributes: {}", bitgem_sat_info.satributes.join(","))),
+        };
         Ok(Response::SatInfo(SatInfo {
             height: bitgem_sat_info.height,
             cycle: bitgem_sat_info.cycle,
             epoch: bitgem_sat_info.epoch,
             period: bitgem_sat_info.period,
-            rarity: rarities[0].clone(),
+            rarity,
         }))
     }
 }
@@ -57,21 +59,41 @@ fn test_build_request() {
 #[test]
 fn test_extract_response() {
     let service = ServiceBitgemSatInfo;
-    let bytes = r#"{
+    
+    // Test with an uncommon sat
+    let mut bytes = r#"{
         "sat":85000000000,
         "height":17,
         "cycle":0,
-        "epoch":0,
+        "epoch":0,  
         "period":0,
         "satributes":["uncommon","alpha","vintage"]
     }"#.as_bytes();
-    let response = service.extract_response(bytes).unwrap();
+    let mut response = service.extract_response(bytes).unwrap();
     assert_eq!(response, Response::SatInfo(SatInfo {
         height: 17,
         cycle: 0,
         epoch: 0,
         period: 0,
         rarity: crate::types::SatoshiRarity::Uncommon,
+    }));
+
+    // Test with a common sat
+    bytes = r#"{
+        "sat":6543210,
+        "height":0,
+        "cycle":0,
+        "epoch":0,
+        "period":0,
+        "satributes":["vintage"]
+    }"#.as_bytes();
+    response = service.extract_response(bytes).unwrap();
+    assert_eq!(response, Response::SatInfo(SatInfo {
+        height: 0,
+        cycle: 0,
+        epoch: 0,
+        period: 0,
+        rarity: crate::types::SatoshiRarity::Common,
     }));
 }
 

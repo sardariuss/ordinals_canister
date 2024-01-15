@@ -7,7 +7,7 @@ use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs
 
 use services::{SERVICES, default_args, unwrap_max_response_bytes, get_available};
 use types::{Utxo, BitgemSatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provider, Function, Args,
-    EndPoint, Response, OrdResult, OrdError, MultiOrdResult, HiroBrc20Details, HiroBrc20Holders};
+    ProviderOrdResult, EndPoint, Response, OrdResult, OrdError, MultiOrdResult, HiroBrc20Details, HiroBrc20Holders};
 
 use crate::http::CanisterHttpRequest;
 use crate::services::IsService;
@@ -26,25 +26,61 @@ pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // Used to be 100_000
 #[ic_cdk::update]
 async fn request(args: Args) -> MultiOrdResult {
 
+    // Prepare the requests.
     let available = get_available(args.clone().function);
-
-    let mut results = vec![];
-
-    // TODO: parallelize the calls
-    for (provider, end_point) in available {
-        let response = call_service(provider, end_point, args.clone()).await;
-        results.push((provider, response));
+    let mut prepared_requests = vec![];
+    let mut cycles_cost = 0;
+    for (provider, end_point) in &available {
+        let request_result = prepare_request(provider.clone(), end_point.clone(), args.clone());
+        if let Ok((_, cycles)) = request_result {
+            cycles_cost += cycles;
+        }
+        prepared_requests.push((provider, request_result));
     }
 
-    if let Some(first) = results.first() {
-        let equal = results.iter().all(|result| result.1 == first.1);
-        if equal {
-            return MultiOrdResult::Consistent(first.1.clone());
-        } else {
-            return MultiOrdResult::Inconsistent(results);
+    // Early return if no service is available for this function.
+    if prepared_requests.len() == 0 {
+        return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ provider: Provider::Hiro, end_point: EndPoint::SatInfo }));
+    }
+
+    // Pay for the request.
+    let pay_result = pay_cycles(cycles_cost as u128).await;
+    // Early return if the caller doesn't have enough cycles to pay for all the services.
+    match pay_result {
+        Ok(_) => {},
+        Err(err) => {
+            return MultiOrdResult::Consistent(Err(err));
         }
-    } else {
-        panic!("No service available for this function");
+    };
+
+    // Execute the requests.
+    // TODO: parallelize the calls
+    let mut results: Vec<ProviderOrdResult> = vec![];
+    for (provider, prepared_request) in prepared_requests {
+        match prepared_request {
+            Ok((request, cost)) => {
+                results.push(ProviderOrdResult{ provider: *provider, result: execute_request(request, cost).await });
+            },
+            Err(err) => {
+                results.push(ProviderOrdResult{ provider:*provider, result: Err(err) });
+            }
+        }
+    }
+
+    // Sort the results.
+    match results.first() {
+        Some(first) => {
+            let equal = results.iter().all(|other| other.result == first.result);
+            if equal {
+                return MultiOrdResult::Consistent(first.result.clone());
+            } else {
+                return MultiOrdResult::Inconsistent(results);
+            }
+        },
+        None => {
+            // This should never happen, hence the panic.
+            panic!("No results");
+        }
     }
 }
 
@@ -140,7 +176,22 @@ async fn call_service(
     provider: Provider,
     end_point: EndPoint,
     args: Args,
-) -> OrdResult {
+) -> Result<Response, OrdError> {
+
+    let (request, cycles) = prepare_request(provider, end_point, args.clone())?;
+
+    pay_cycles(cycles).await?;
+
+    let response = execute_request(request, cycles).await?;
+
+    Ok(response)
+}
+
+fn prepare_request(
+    provider: Provider,
+    end_point: EndPoint,
+    args: Args,
+) -> Result<(CanisterHttpRequest, u128), OrdError> {
 
     if let Some(service) = SERVICES.get(&(provider, end_point)) {
 
@@ -152,30 +203,54 @@ async fn call_service(
         let context = candid::encode_args((provider, end_point))
             .map_err(|error| OrdError::CandidEncodingError(format!("Failure while encoding context: {}", error)))?;
 
-        let cycles = get_http_request_cost(
-            url.as_str(),
-            body.clone().map(|body| body.len() as u64).unwrap_or(0),
-            max_response_bytes,
-        );
-            
-        let response = CanisterHttpRequest::new()
+        let request = CanisterHttpRequest::new()
             .url(url.as_str())
             .method(http_method)
-            .body(body)
+            .body(body.clone())
             .transform_context("transform_http_response", context)
-            .max_response_bytes(max_response_bytes)
-            .send(cycles)
-            .await
-            .map_err(|error| OrdError::HttpSendError(error))?;
+            .max_response_bytes(max_response_bytes);
 
-        let response = candid::decode_args::<(Response,)>(response.body.as_slice())
-            .map(|decoded| decoded.0)
-            .map_err(|error| OrdError::CandidDecodingError(format!("Failure while decoding response: {}", error)))?;
+        let cycles = get_http_request_cost(
+            url.as_str(),
+            body.map(|body| body.len() as u64).unwrap_or(0),
+            max_response_bytes,
+        );
 
-        return Ok(response);
+        return Ok((request, cycles));
     }
-
+    
     Err(OrdError::NoServiceError{ provider, end_point })
+}
+
+async fn pay_cycles(cycles_cost: u128) -> Result<(), OrdError> {
+    // Check that the caller has enough cycles to pay for the request.
+    let cycles_available: u128 = ic_cdk::api::call::msg_cycles_available128();
+    if cycles_available < cycles_cost {
+        return Err(OrdError::TooFewCycles {
+            expected: cycles_cost,
+            received: cycles_available,
+        }
+        .into());
+    }
+    // Pay for the request.
+    ic_cdk::api::call::msg_cycles_accept128(cycles_cost);
+    Ok(())
+}
+
+async fn execute_request(
+    request: CanisterHttpRequest,
+    cycles: u128,
+) -> OrdResult {    
+    let response = request
+        .send(cycles)
+        .await
+        .map_err(|error| OrdError::HttpSendError(error))?;
+
+    let response = candid::decode_args::<(Response,)>(response.body.as_slice())
+        .map(|decoded| decoded.0)
+        .map_err(|error| OrdError::CandidDecodingError(format!("Failure while decoding response: {}", error)))?;
+
+    return Ok(response);
 }
 
 #[ic_cdk::query]
@@ -224,4 +299,9 @@ fn get_http_request_cost(
         + HTTP_OUTCALL_REQUEST_COST
         + HTTP_OUTCALL_BYTE_RECEIVED_COST * (ingress_bytes + max_response_bytes as u128);
     base_cost as u128
+}
+
+#[ic_cdk::query]
+async fn cycles_balance() -> u64 {
+    ic_cdk::api::canister_balance()
 }

@@ -12,16 +12,29 @@ pub enum OrdError {
     HttpSendError(HttpSendError),
     CandidEncodingError(String),
     CandidDecodingError(String),
-    NoServiceError{ provider: Provider, end_point: EndPoint },
+    NoServiceError { 
+        provider: Provider, 
+        end_point: EndPoint 
+    },
+    TooFewCycles {
+        expected: u128,
+        received: u128,
+    },
     UnexpectedResponseTypeError(Response),
 }
 
 pub type OrdResult = Result<Response, OrdError>;
 
 #[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
+pub struct ProviderOrdResult {
+    pub provider: Provider,
+    pub result: OrdResult,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, CandidType, Deserialize)]
 pub enum MultiOrdResult {
     Consistent(OrdResult),
-    Inconsistent(Vec<(Provider, OrdResult)>),
+    Inconsistent(Vec<ProviderOrdResult>),
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize, Copy, Clone)]

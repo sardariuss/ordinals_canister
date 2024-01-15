@@ -170,6 +170,7 @@ type ord_error = variant {
   CandidEncodingError: text;
   CandidDecodingError: text;
   NoServiceError: record { provider: provider; end_point: end_point; };
+  TooFewCycles: record { expected: nat; received: nat; };
   UnexpectedResponseTypeError: response;
 };
 
@@ -252,5 +253,7 @@ service : () -> {
   "hiro_brc20_details"       : (ticker)         -> (brc20_details_result);
 
   "hiro_brc20_holders"       : (ticker)         -> (brc20_holders_result);
+
+  "cycles_balance"           : ()               -> (nat64);
   
 }
