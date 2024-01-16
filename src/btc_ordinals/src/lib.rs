@@ -5,7 +5,7 @@ mod utils;
 
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 
-use services::{SERVICES, default_args, unwrap_max_response_bytes, get_available};
+use services::{SERVICES, default_args, unwrap_max_response_bytes, deduce_end_point, validate_providers};
 use types::{Utxo, BitgemSatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provider, OrdFunction, Args, OrdArgs,
     ProviderOrdResult, EndPoint, Response, OrdResult, OrdError, MultiOrdResult, HiroBrc20Details, HiroBrc20Holders};
 use utils::from_ord_args;
@@ -27,8 +27,21 @@ pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // TODO: Double check 
 #[ic_cdk::update]
 async fn request(args: OrdArgs) -> MultiOrdResult {
 
+    // Check that the providers are available for this function.
+    let end_point = deduce_end_point(args.function.clone());
+    let providers = match validate_providers(args.providers.clone(), end_point){
+        Ok(providers) => providers,
+        Err(missing) => {
+            return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ providers: missing, end_point }));
+        }
+    };
+
+    // Early return if no provider is available.
+    if providers.len() == 0 {
+        return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ providers, end_point }));
+    }
+
     // Prepare the requests.
-    let (providers, end_point) = get_available(args.function.clone(), args.providers.clone());
     let mut prepared_requests = vec![];
     let mut cycles_cost = 0;
     for provider in &providers {
@@ -37,11 +50,6 @@ async fn request(args: OrdArgs) -> MultiOrdResult {
             cycles_cost += cycles;
         }
         prepared_requests.push((provider, request_result));
-    }
-
-    // Early return if no service is available for this function.
-    if prepared_requests.len() == 0 {
-        return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ providers: args.providers.clone(), end_point }));
     }
 
     // Pay for the request.

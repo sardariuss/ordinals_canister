@@ -173,11 +173,9 @@ lazy_static! {
     };
 }
 
-// Return the services that are available for the given function
-// If the providers argument is empty, all services are returned
-// Otherwise, only the services of the given providers are returned
-pub fn get_available(function: OrdFunction, providers: Vec<Provider>) -> (Vec<Provider>, EndPoint) {
-    let end_point = match function {
+// Return the end point associated with the given ord function
+pub fn deduce_end_point(function: OrdFunction) -> EndPoint {
+    match function {
         OrdFunction::SatRange{ utxo: _ }                     => EndPoint::SatRange,
         OrdFunction::SatInfo{ ordinal: _ }                   => EndPoint::SatInfo,
         OrdFunction::SatInscriptions{ ordinal: _ }           => EndPoint::SatInscriptions,
@@ -185,12 +183,31 @@ pub fn get_available(function: OrdFunction, providers: Vec<Provider>) -> (Vec<Pr
         OrdFunction::InscriptionContent{ inscription_id: _ } => EndPoint::InscriptionContent,
         OrdFunction::Brc20Details{ ticker: _ }               => EndPoint::Brc20Details,
         OrdFunction::Brc20Holders{ ticker: _ }               => EndPoint::Brc20Holders,
-    };
-    let providers = SERVICES
+    }
+}
+
+// Check that the given providers are available
+// If the required providers argument is empty, all available services are returned
+// Otherwise, if the required providers are all available, return them
+// Otherwise, return an error with the providers that are not available
+pub fn validate_providers(required: Vec<Provider>, end_point: EndPoint) -> Result<Vec<Provider>, Vec<Provider>> {
+    let available: Vec<Provider> = SERVICES
         .iter()
-        .filter(|(key, _)| 
-        (providers.is_empty() || providers.contains(&key.0)) && key.1 == end_point)
+        .filter(|(key, _)| key.1 == end_point)
         .map(|(key, _)| key.0.clone())
         .collect();
-    (providers, end_point)
+    if required.is_empty() {
+        Ok(available)
+    } else {
+        let missing : Vec<_> = required
+            .iter()
+            .filter(|&element| !available.contains(element))
+            .cloned()
+            .collect();
+        if missing.is_empty() {
+            Ok(required)
+        } else {
+            Err(missing)
+        }
+    }
 }

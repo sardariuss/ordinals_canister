@@ -40,7 +40,7 @@ pub enum MultiOrdResult {
     Inconsistent(Vec<ProviderOrdResult>),
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize, Copy, Clone, Hash)]
 pub enum Provider {
     Hiro,
     Bitgem,
