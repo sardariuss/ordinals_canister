@@ -1,4 +1,4 @@
-use super::super::{IsService, Args, Response, Function, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
 use crate::{types::{Provider, HiroBrc20Details, OrdResult}, utils::deserialize_response};
 use std::ops::Add;
@@ -9,7 +9,7 @@ impl IsService for ServiceBrc20Details {
 
     fn get_url(&self, args: Args) -> String {
         let ticker = match args.function {
-            Function::Brc20Details{ ticker } => ticker,
+            OrdFunction::Brc20Details{ ticker } => ticker,
             _ => panic!("Invalid function: Brc20Details expected"),
         };
         BASE_URLS[&Provider::Hiro]
@@ -33,7 +33,7 @@ impl IsService for ServiceBrc20Details {
 fn test_build_request() {
     let service = ServiceBrc20Details;
     let args = Args {
-        function: Function::Brc20Details{ ticker: "ordi".to_string() },
+        function: OrdFunction::Brc20Details{ ticker: "ordi".to_string() },
         query_options: None,
         max_kb_per_item: None,
     };

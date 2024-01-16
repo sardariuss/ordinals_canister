@@ -1,4 +1,4 @@
-use super::super::{IsService, Args, Response, Function, unwrap_query_options, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, unwrap_query_options, BASE_URLS};
 
 use crate::{types::{Provider, HiroBrc20Holders, OrdResult}, utils::deserialize_response};
 use std::ops::Add;
@@ -9,7 +9,7 @@ impl IsService for ServiceBrc20Holders {
 
     fn get_url(&self, args: Args) -> String {
         let ticker = match args.clone().function {
-            Function::Brc20Holders{ ticker } => ticker,
+            OrdFunction::Brc20Holders{ ticker } => ticker,
             _ => panic!("Invalid function: Brc20Holders expected"),
         };
         let query_options = unwrap_query_options(args);
@@ -39,7 +39,7 @@ fn test_build_request() {
 
     let service = ServiceBrc20Holders;
     let args = Args {
-        function: Function::Brc20Holders{ ticker: "ordi".to_string() },
+        function: OrdFunction::Brc20Holders{ ticker: "ordi".to_string() },
         query_options: Some( QueryOptions{ offset: 2, limit: 5 }),
         max_kb_per_item: None,
     };

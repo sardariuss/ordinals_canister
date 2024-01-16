@@ -32,16 +32,21 @@ Each function is prefixed by the provider used to retrieve the associated data. 
 ### 🏹 The generic `request` method
 
 ```
-request                  : (args)           -> (multi_ord_result);
+request                  : (ord_args)       -> (multi_ord_result);
 ```
 where 
 ```
-  type args = record {
-    function: function;
+  type ord_args = record {
+    function: ord_function;
+    providers: vec provider;
     query_options: opt query_options;
     max_kb_per_item: opt nat64;
   };
-  type function = variant {
+  type provider = variant {
+    Hiro;
+    Bitgem;
+  };
+  type ord_function = variant {
     SatRange:           record { utxo           : utxo;           };
     SatInfo:            record { ordinal        : nat64;          };
     SatInscriptions:    record { ordinal        : nat64;          };
@@ -58,7 +63,7 @@ where
 
 Here, args is a record with fields for the function, query options, and maximum KB per item. The function variant can be one of the specific functions listed above. The query_options record includes limits and offsets.
 
-This method allows querying the same data as the specific functions, offering the flexibility to override default parameters such as maximum KB per item, query limit, and offset.
+This method allows querying the same data as the specific functions, offering the flexibility to choose the provider and override default parameters such as maximum KB per item, query limit, and offset. Note if the list of providers is left empty, all available providers are taken.
 
 The request method supports querying ordinal information through multiple ordinal APIs (if available), returning a multi_ord_result. This result can be either Consistent or Inconsistent depending on whether the outcomes are the same or different across different APIs.
 
@@ -90,11 +95,11 @@ Once the job completes, your application will be available at `http://127.0.0.1:
 ```bash
 # Get information for the satoshi 85000000000 via the bitgem provider
 dfx canister call btc_ordinals bitgem_sat_info '(85000000000)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
-# Get the inscriptions associated to the satoshi 85000000000 via the hiro provider (no control over query options or max kb per item)
-dfx canister call btc_ordinals hiro_sat_inscriptions '(85000000000)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+# Get the inscriptions associated to the satoshi 947410401228752 via the hiro provider (no control over query options or max kb per item)
+dfx canister call btc_ordinals hiro_sat_inscriptions '(947410401228752)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
 
-# Get the first five inscriptions associated with the satoshi 85000000000, specifying a max of 1KB per item.
-dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 85000000000 } }; query_options = opt record { offset = 0; limit = 5; }; max_kb_per_item = opt 1; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+# Get the last inscription associated with the satoshi 947410401228752, specifying a max of 2KB per item.
+dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752 } }; providers = vec { variant { Hiro } };  query_options = opt record { offset = 10; limit = 1; }; max_kb_per_item = opt 2; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
 ```
 
 See the `EXAMPLES` file for more.
@@ -104,6 +109,8 @@ See the `EXAMPLES` file for more.
 - [ ] Store the results in a stable data structure to avoid having to make the same http outcall over and over for the same data
 - [ ] Verify the base cycles costs and computation performed to obtain the cost of processing an http outcall
 - [ ] Create an end-to-end test canister to thoroughly validate the `btc_ordinals` canister
+- [ ] Optimize possible unnecessary cloning of function arguments
+- [ ] Add a function that returns the default cycle cost of each `ord_function`
 
 ## 🙏 Credits
 

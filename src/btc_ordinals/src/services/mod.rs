@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
 use crate::ONE_KIB;
-use crate::types::{Provider, EndPoint, Args, Function, Response, OrdError, QueryOptions};
+use crate::types::{Provider, EndPoint, Args, OrdFunction, Response, OrdError, QueryOptions};
 
 use std::collections::BTreeMap;
 
@@ -30,39 +30,39 @@ pub enum Service {
     Brc20Holders(ServiceBrc20Holders),
 }
 
-pub fn default_args(function: Function) -> Args {
+pub fn default_args(function: OrdFunction) -> Args {
     match function.clone() {
-        Function::SatRange{ utxo: _ } => Args {
+        OrdFunction::SatRange{ utxo: _ } => Args {
             function,
             query_options: None,
             max_kb_per_item: Some(1),
         },
-        Function::SatInfo{ ordinal: _ } => Args {
+        OrdFunction::SatInfo{ ordinal: _ } => Args {
             function,
             query_options: None,
             max_kb_per_item: Some(1), // 1 KiB should be enough for a single sat info, the size of the response body is approximatly 400 bytes
         },
-        Function::SatInscriptions{ ordinal: _ } => Args {
+        OrdFunction::SatInscriptions{ ordinal: _ } => Args {
             function,
             query_options: Some(QueryOptions{ offset: 0, limit: 10 }),
             max_kb_per_item: Some(2), // 2 KiB should be enough for a single inscription, the size of the response body is approximatly 1400 bytes
         },
-        Function::InscriptionInfo{ inscription_id: _ } => Args {
+        OrdFunction::InscriptionInfo{ inscription_id: _ } => Args {
             function,
             query_options: None,
             max_kb_per_item: Some(2), // 2 kiB (same as above)
         },
-        Function::InscriptionContent{ inscription_id: _ } => Args {
+        OrdFunction::InscriptionContent{ inscription_id: _ } => Args {
             function,
             query_options: None,
             max_kb_per_item: Some(5), // 5 KiB, set arbitrarily because the size of the inscription content can vary
         },
-        Function::Brc20Details{ ticker: _ } => Args {
+        OrdFunction::Brc20Details{ ticker: _ } => Args {
             function,
             query_options: None,
             max_kb_per_item: Some(2), // 2 KiB should be enough for a single brc20 details, the size of the response body is approximatly 800 bytes
         },
-        Function::Brc20Holders{ ticker: _ } => Args {
+        OrdFunction::Brc20Holders{ ticker: _ } => Args {
             function,
             query_options: Some(QueryOptions{ offset: 0, limit: 10 }),
             max_kb_per_item: Some(1), // 1 Kib should be more than enough for a single brc20 holder, the size of the response body is approximatly 200 bytes
@@ -174,19 +174,23 @@ lazy_static! {
 }
 
 // Return the services that are available for the given function
-pub fn get_available(function: Function) -> Vec<(Provider, EndPoint)> {
+// If the providers argument is empty, all services are returned
+// Otherwise, only the services of the given providers are returned
+pub fn get_available(function: OrdFunction, providers: Vec<Provider>) -> (Vec<Provider>, EndPoint) {
     let end_point = match function {
-        Function::SatRange{ utxo: _ }                     => EndPoint::SatRange,
-        Function::SatInfo{ ordinal: _ }                   => EndPoint::SatInfo,
-        Function::SatInscriptions{ ordinal: _ }           => EndPoint::SatInscriptions,
-        Function::InscriptionInfo{ inscription_id: _ }    => EndPoint::InscriptionInfo,
-        Function::InscriptionContent{ inscription_id: _ } => EndPoint::InscriptionContent,
-        Function::Brc20Details{ ticker: _ }               => EndPoint::Brc20Details,
-        Function::Brc20Holders{ ticker: _ }               => EndPoint::Brc20Holders,
+        OrdFunction::SatRange{ utxo: _ }                     => EndPoint::SatRange,
+        OrdFunction::SatInfo{ ordinal: _ }                   => EndPoint::SatInfo,
+        OrdFunction::SatInscriptions{ ordinal: _ }           => EndPoint::SatInscriptions,
+        OrdFunction::InscriptionInfo{ inscription_id: _ }    => EndPoint::InscriptionInfo,
+        OrdFunction::InscriptionContent{ inscription_id: _ } => EndPoint::InscriptionContent,
+        OrdFunction::Brc20Details{ ticker: _ }               => EndPoint::Brc20Details,
+        OrdFunction::Brc20Holders{ ticker: _ }               => EndPoint::Brc20Holders,
     };
-    SERVICES
+    let providers = SERVICES
         .iter()
-        .filter(|(key, _)| key.1 == end_point)
-        .map(|(key, _)| key.clone())
-        .collect()
+        .filter(|(key, _)| 
+        (providers.is_empty() || providers.contains(&key.0)) && key.1 == end_point)
+        .map(|(key, _)| key.0.clone())
+        .collect();
+    (providers, end_point)
 }

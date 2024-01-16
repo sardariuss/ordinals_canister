@@ -1,4 +1,4 @@
-use super::super::{IsService, Args, Response, Function, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
@@ -14,7 +14,7 @@ impl IsService for ServiceBitgemSatRange {
 
     fn get_body(&self, args: Args) -> Option<Vec<u8>> {
         let utxo = match args.function {
-            Function::SatRange{ utxo } => utxo,
+            OrdFunction::SatRange{ utxo } => utxo,
             _ => panic!("Invalid function: SatRange expected"),
         };
         let body_json = format!(r#"{{"utxos": ["{}:{}"]}}"#, utxo.txid, utxo.vout);
@@ -38,7 +38,7 @@ fn test_build_request() {
 
     let service = ServiceBitgemSatRange;
     let args = Args {
-        function: Function::SatRange{ 
+        function: OrdFunction::SatRange{ 
             utxo: Utxo { 
                 txid: "3de53b46b6a2bbf38587ac3cfc055eb2e960a8d25ff1361f2f15ef2bee9168aa".to_string(), 
                 vout : 0, 

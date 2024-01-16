@@ -6,8 +6,9 @@ mod utils;
 use ic_cdk::api::management_canister::http_request::{HttpResponse, TransformArgs};
 
 use services::{SERVICES, default_args, unwrap_max_response_bytes, get_available};
-use types::{Utxo, BitgemSatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provider, Function, Args,
+use types::{Utxo, BitgemSatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provider, OrdFunction, Args, OrdArgs,
     ProviderOrdResult, EndPoint, Response, OrdResult, OrdError, MultiOrdResult, HiroBrc20Details, HiroBrc20Holders};
+use utils::from_ord_args;
 
 use crate::http::CanisterHttpRequest;
 use crate::services::IsService;
@@ -24,14 +25,14 @@ pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000; // TODO: Double check (i
 pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // TODO: Double check (in the eth-rpc project, it is set to 100_000)
 
 #[ic_cdk::update]
-async fn request(args: Args) -> MultiOrdResult {
+async fn request(args: OrdArgs) -> MultiOrdResult {
 
     // Prepare the requests.
-    let available = get_available(args.clone().function);
+    let (providers, end_point) = get_available(args.function.clone(), args.providers.clone());
     let mut prepared_requests = vec![];
     let mut cycles_cost = 0;
-    for (provider, end_point) in &available {
-        let request_result = prepare_request(provider.clone(), end_point.clone(), args.clone());
+    for provider in &providers {
+        let request_result = prepare_request(provider.clone(), end_point.clone(), from_ord_args(args.clone()));
         if let Ok((_, cycles)) = request_result {
             cycles_cost += cycles;
         }
@@ -40,7 +41,7 @@ async fn request(args: Args) -> MultiOrdResult {
 
     // Early return if no service is available for this function.
     if prepared_requests.len() == 0 {
-        return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ provider: Provider::Hiro, end_point: EndPoint::SatInfo }));
+        return MultiOrdResult::Consistent(Err(OrdError::NoServiceError{ providers: args.providers.clone(), end_point }));
     }
 
     // Pay for the request.
@@ -87,7 +88,7 @@ async fn request(args: Args) -> MultiOrdResult {
 #[ic_cdk::update]
 async fn bitgem_sat_range(utxo: Utxo) -> Result<BitgemSatRanges, OrdError> {
 
-    call_service(Provider::Bitgem, EndPoint::SatRange, default_args(Function::SatRange { utxo })).await.map(|response| {
+    call_service(Provider::Bitgem, EndPoint::SatRange, default_args(OrdFunction::SatRange { utxo })).await.map(|response| {
         match response {
             Response::SatRange(sat_ranges) => sat_ranges,
             _ => panic!("Unexpected response type"),
@@ -98,7 +99,7 @@ async fn bitgem_sat_range(utxo: Utxo) -> Result<BitgemSatRanges, OrdError> {
 #[ic_cdk::update]
 async fn bitgem_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
 
-    call_service(Provider::Bitgem, EndPoint::SatInfo, default_args(Function::SatInfo { ordinal })).await.map(|response| {
+    call_service(Provider::Bitgem, EndPoint::SatInfo, default_args(OrdFunction::SatInfo { ordinal })).await.map(|response| {
         match response {
             Response::SatInfo(ordinal_info) => ordinal_info,
             _ => panic!("Unexpected response type"),
@@ -109,7 +110,7 @@ async fn bitgem_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
 #[ic_cdk::update]
 async fn hiro_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::SatInfo, default_args(Function::SatInfo { ordinal })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::SatInfo, default_args(OrdFunction::SatInfo { ordinal })).await.map(|response| {
         match response {
             Response::SatInfo(ordinal_info) => ordinal_info,
             _ => panic!("Unexpected response type"),
@@ -120,7 +121,7 @@ async fn hiro_sat_info(ordinal: u64) -> Result<SatInfo, OrdError> {
 #[ic_cdk::update]
 async fn hiro_sat_inscriptions(ordinal: u64) -> Result<HiroSatInscriptions, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::SatInscriptions, default_args(Function::SatInscriptions { ordinal })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::SatInscriptions, default_args(OrdFunction::SatInscriptions { ordinal })).await.map(|response| {
         match response {
             Response::SatInscriptions(inscriptions) => inscriptions,
             _ => panic!("Unexpected response type"),
@@ -131,7 +132,7 @@ async fn hiro_sat_inscriptions(ordinal: u64) -> Result<HiroSatInscriptions, OrdE
 #[ic_cdk::update]
 async fn hiro_inscription_info(inscription_id: String) -> Result<HiroSatInscription, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::InscriptionInfo, default_args(Function::InscriptionInfo { inscription_id })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::InscriptionInfo, default_args(OrdFunction::InscriptionInfo { inscription_id })).await.map(|response| {
         match response {
             Response::InscriptionInfo(inscription) => inscription,
             _ => panic!("Unexpected response type"),
@@ -142,7 +143,7 @@ async fn hiro_inscription_info(inscription_id: String) -> Result<HiroSatInscript
 #[ic_cdk::update]
 async fn hiro_inscription_content(inscription_id: String) -> Result<Vec<u8>, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::InscriptionContent, default_args(Function::InscriptionContent { inscription_id })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::InscriptionContent, default_args(OrdFunction::InscriptionContent { inscription_id })).await.map(|response| {
         match response {
             Response::InscriptionContent(content) => content,
             _ => panic!("Unexpected response type"),
@@ -153,7 +154,7 @@ async fn hiro_inscription_content(inscription_id: String) -> Result<Vec<u8>, Ord
 #[ic_cdk::update]
 async fn hiro_brc20_details(ticker: String) -> Result<HiroBrc20Details, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::Brc20Details, default_args(Function::Brc20Details { ticker })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::Brc20Details, default_args(OrdFunction::Brc20Details { ticker })).await.map(|response| {
         match response {
             Response::Brc20Details(details) => details,
             _ => panic!("Unexpected response type"),
@@ -164,7 +165,7 @@ async fn hiro_brc20_details(ticker: String) -> Result<HiroBrc20Details, OrdError
 #[ic_cdk::update]
 async fn hiro_brc20_holders(ticker: String) -> Result<HiroBrc20Holders, OrdError> {
 
-    call_service(Provider::Hiro, EndPoint::Brc20Holders, default_args(Function::Brc20Holders { ticker })).await.map(|response| {
+    call_service(Provider::Hiro, EndPoint::Brc20Holders, default_args(OrdFunction::Brc20Holders { ticker })).await.map(|response| {
         match response {
             Response::Brc20Holders(holders) => holders,
             _ => panic!("Unexpected response type"),
@@ -217,7 +218,7 @@ fn prepare_request(
         return Ok((request, cycles));
     }
     
-    Err(OrdError::NoServiceError{ provider, end_point })
+    Err(OrdError::NoServiceError{ providers: vec![provider], end_point })
 }
 
 async fn pay_cycles(cycles_cost: u128) -> Result<(), OrdError> {
@@ -263,7 +264,7 @@ fn transform_http_response(args: TransformArgs) -> HttpResponse {
             Err(err) => Err(OrdError::ContextDecodingError(format!("Failed to decode context: {}", err))),
             Ok((provider, end_point)) => {
                 match SERVICES.get(&(provider, end_point)) {
-                    None => Err(OrdError::NoServiceError{ provider, end_point }),
+                    None => Err(OrdError::NoServiceError{ providers: vec![provider], end_point }),
                     Some(service) => service.extract_response(&sanitized.body),
                 }
             }

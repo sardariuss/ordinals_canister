@@ -1,4 +1,4 @@
-use super::super::{IsService, Args, Response, Function, unwrap_query_options, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, unwrap_query_options, BASE_URLS};
 
 use crate::{types::{Provider, HiroSatInscriptions, OrdResult}, utils::deserialize_response};
 use std::ops::Add;
@@ -9,7 +9,7 @@ impl IsService for ServiceHiroSatInscriptions {
 
     fn get_url(&self, args: Args) -> String {
         let ordinal = match args.clone().function {
-            Function::SatInscriptions{ ordinal } => ordinal,
+            OrdFunction::SatInscriptions{ ordinal } => ordinal,
             _ => panic!("Invalid function: SatInscription expected"),
         };
         let query_options = unwrap_query_options(args);
@@ -39,7 +39,7 @@ fn test_build_request() {
 
     let service = ServiceHiroSatInscriptions;
     let args = Args {
-        function: Function::SatInscriptions{ ordinal: 947410401228752 },
+        function: OrdFunction::SatInscriptions{ ordinal: 947410401228752 },
         query_options: Some( QueryOptions{ offset: 0, limit: 2 }),
         max_kb_per_item: None,
     };

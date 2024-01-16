@@ -1,4 +1,4 @@
-use super::super::{IsService, Args, Response, Function, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
 use crate::{types::{Provider, BitgemSatInfo, SatInfo, OrdResult, OrdError}, utils::{map_str_rarity, deserialize_response}};
 
@@ -10,7 +10,7 @@ impl IsService for ServiceBitgemSatInfo {
 
     fn get_url(&self, args: Args) -> String {
         let ordinal = match args.function {
-            Function::SatInfo{ ordinal } => ordinal,
+            OrdFunction::SatInfo{ ordinal } => ordinal,
             _ => panic!("Invalid function: SatInfo expected"),
         };
         BASE_URLS[&Provider::Bitgem]
@@ -48,7 +48,7 @@ impl IsService for ServiceBitgemSatInfo {
 fn test_build_request() {
     let service = ServiceBitgemSatInfo;
     let args = Args {
-        function: Function::SatInfo{ ordinal: 85000000000 },
+        function: OrdFunction::SatInfo{ ordinal: 85000000000 },
         query_options: None,
         max_kb_per_item: None,
     };

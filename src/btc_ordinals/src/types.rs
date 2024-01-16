@@ -16,7 +16,7 @@ pub enum OrdError {
     ContextEncodingError(String),
     ContextDecodingError(String),
     NoServiceError { 
-        provider: Provider, 
+        providers: Vec<Provider>, 
         end_point: EndPoint 
     },
     TooFewCycles {
@@ -47,14 +47,22 @@ pub enum Provider {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct Args {
-    pub function: Function,
+pub struct OrdArgs {
+    pub function: OrdFunction,
+    pub providers: Vec<Provider>,
     pub query_options: Option<QueryOptions>,
     pub max_kb_per_item: Option<u64>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub enum Function {
+pub struct Args {
+    pub function: OrdFunction,
+    pub query_options: Option<QueryOptions>,
+    pub max_kb_per_item: Option<u64>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub enum OrdFunction {
     SatRange { 
         utxo: Utxo,
     },

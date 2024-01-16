@@ -1,10 +1,11 @@
-type args = record {
-  function: function;
+type ord_args = record {
+  function: ord_function;
+  providers: vec provider;
   query_options: opt query_options;
   max_kb_per_item: opt nat64;
 };
 
-type function = variant {
+type ord_function = variant {
   SatRange:           record { utxo           : utxo;           };
   SatInfo:            record { ordinal        : nat64;          };
   SatInscriptions:    record { ordinal        : nat64;          };
@@ -174,7 +175,7 @@ type ord_error = variant {
   ResponseDecodingError: text;
   ContextEncodingError: text;
   ContextDecodingError: text;
-  NoServiceError: record { provider: provider; end_point: end_point; };
+  NoServiceError: record { providers: vec provider; end_point: end_point; };
   TooFewCycles: record { expected: nat; received: nat; };
   UnexpectedResponseTypeError: response;
 };
@@ -241,7 +242,7 @@ type brc20_holders_result = variant {
 
 service : () -> {
 
-  "request"                  : (args)           -> (multi_ord_result);
+  "request"                  : (ord_args)       -> (multi_ord_result);
 
   "bitgem_sat_range"         : (utxo)           -> (sat_range_result);
 
