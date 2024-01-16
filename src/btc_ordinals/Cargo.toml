@@ -1,5 +1,5 @@
 [package]
-name = "ic_btc_ordinals"
+name = "btc_ordinals"
 version = "0.1.0"
 edition = "2021"
 

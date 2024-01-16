@@ -53,6 +53,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "btc_ordinals"
+version = "0.1.0"
+dependencies = [
+ "candid",
+ "ic-cdk",
+ "ic-cdk-macros",
+ "lazy_static",
+ "serde",
+ "serde_bytes",
+ "serde_json",
+]
+
+[[package]]
 name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -206,19 +219,6 @@ name = "ic0"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a54b5297861c651551676e8c43df805dad175cc33bc97dbd992edbbb85dcbcdf"
-
-[[package]]
-name = "ic_btc_ordinals"
-version = "0.1.0"
-dependencies = [
- "candid",
- "ic-cdk",
- "ic-cdk-macros",
- "lazy_static",
- "serde",
- "serde_bytes",
- "serde_json",
-]
 
 [[package]]
 name = "ic_principal"

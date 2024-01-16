@@ -20,8 +20,8 @@ const ONE_KIB: u64 = 1_024;
 pub const INGRESS_OVERHEAD_BYTES: u128 = 100;
 pub const INGRESS_MESSAGE_RECEIVED_COST: u128 = 1_200_000;
 pub const INGRESS_MESSAGE_BYTE_RECEIVED_COST: u128 = 2_000;
-pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000; // Used to be 400_000_000
-pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // Used to be 100_000
+pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000; // TODO: Double check (in the eth-rpc project, it is set to 400_000_000)
+pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // TODO: Double check (in the eth-rpc project, it is set to 100_000)
 
 #[ic_cdk::update]
 async fn request(args: Args) -> MultiOrdResult {
