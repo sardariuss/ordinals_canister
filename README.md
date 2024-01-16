@@ -1,4 +1,4 @@
-# Ordinal canister
+# ⚪ Ordinal canister
 
 [Ordinal](https://ordinals.com/) [theory](https://docs.ordinals.com/) ascribes numismatic worth to satoshis, enabling their collection and trade as intriguing items. Each individual satoshi can bear arbitrary content inscriptions, resulting in distinct digital artifacts native to Bitcoin. These artifacts can be stored in Bitcoin wallets and exchanged through Bitcoin transactions. The inscriptions mirror the durability, immutability, security, and decentralization inherent in Bitcoin.
 
@@ -8,13 +8,13 @@ The [ordinal canister](https://dashboard.internetcomputer.org/canister/tn6q3-wqa
 
 The [Internet Computer](https://internetcomputer.org/) enable canisters to directly make calls to HTTP(S) servers external to the blockchain. This capability is achieved through a mechanism known as [HTTP outcalls](https://internetcomputer.org/docs/current/developer-docs/integrations/https-outcalls/https-outcalls-how-it-works).
 
-The ordinal canister uses this mechanism to access and aggregate data from various ordinal APIs. Currently, two providers, [Hiro](https://docs.hiro.so/) and [Bitgem](https://docs.bitgem.tech/), are employed for this purpose.
+The ordinal canister uses this mechanism to access and aggregate data from various ordinal APIs. Currently, two providers, [Hiro](https://docs.hiro.so/ordinals/) and [Bitgem](https://docs.bitgem.tech/), are employed for this purpose.
 
 ## 📜 Public interface
 
 To query ordinal information from the ordinal canister, you have two options: use one of the specific named functions or employ the generic request method.
 
-### Specific functions
+### 🔫 Specific functions
 
 ```
   bitgem_sat_range         : (utxo)           -> (sat_range_result);
@@ -29,7 +29,7 @@ To query ordinal information from the ordinal canister, you have two options: us
 
 Each function is prefixed by the provider used to retrieve the associated data. In contrast to the generic request method, these functions have a fixed maximum KB per item (required by the HTTP outcall) and fixed query options (if applicable). They provide an intuitive way to query ordinal information.
 
-### The generic `request` method
+### 🏹 The generic `request` method
 
 ```
 request                  : (args)           -> (multi_ord_result);
