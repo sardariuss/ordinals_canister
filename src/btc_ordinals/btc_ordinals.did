@@ -34,6 +34,8 @@ type utxo = record {
   vout: nat32;
 };
 
+type sat = nat64;
+
 type bitgem_sat_ranges = record {
   ranges: vec bitgem_sat_range;
   exoticRanges: vec bitgem_exotic_sat_range;
@@ -243,11 +245,11 @@ service : () -> {
 
   "bitgem_sat_range"         : (utxo)           -> (sat_range_result);
 
-  "bitgem_sat_info"          : (nat64)          -> (sat_info_result);
+  "bitgem_sat_info"          : (sat)            -> (sat_info_result);
 
-  "hiro_sat_info"            : (nat64)          -> (sat_info_result);
+  "hiro_sat_info"            : (sat)            -> (sat_info_result);
 
-  "hiro_sat_inscriptions"    : (nat64)          -> (hiro_sat_inscriptions_result);
+  "hiro_sat_inscriptions"    : (sat)            -> (hiro_sat_inscriptions_result);
 
   "hiro_inscription_info"    : (inscription_id) -> (hiro_sat_inscription_result);
 

@@ -18,9 +18,9 @@ To query ordinal information from the ordinal canister, you have two options: us
 
 ```
   bitgem_sat_range         : (utxo)           -> (sat_range_result);
-  bitgem_sat_info          : (nat64)          -> (sat_info_result);
-  hiro_sat_info            : (nat64)          -> (sat_info_result);
-  hiro_sat_inscriptions    : (nat64)          -> (hiro_sat_inscriptions_result);
+  bitgem_sat_info          : (sat)            -> (sat_info_result);
+  hiro_sat_info            : (sat)            -> (sat_info_result);
+  hiro_sat_inscriptions    : (sat)            -> (hiro_sat_inscriptions_result);
   hiro_inscription_info    : (inscription_id) -> (hiro_sat_inscription_result);
   hiro_inscription_content : (inscription_id) -> (hiro_inscription_content_result);
   hiro_brc20_details       : (ticker)         -> (brc20_details_result);
@@ -84,6 +84,20 @@ dfx deploy
 ```
 
 Once the job completes, your application will be available at `http://127.0.0.1:4943/?canisterId=bd3sg-teaaa-aaaaa-qaaba-cai&id={local_btc_ordinals}`.
+
+## 🙋 Examples (local replica)
+
+```bash
+# Get information for the satoshi 85000000000 via the bitgem provider
+dfx canister call btc_ordinals bitgem_sat_info '(85000000000)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+# Get the inscriptions associated to the satoshi 85000000000 via the hiro provider (no control over query options or max kb per item)
+dfx canister call btc_ordinals hiro_sat_inscriptions '(85000000000)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+
+# Get the first five inscriptions associated with the satoshi 85000000000, specifying a max of 1KB per item.
+dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 85000000000 } }; query_options = opt record { offset = 0; limit = 5; }; max_kb_per_item = opt 1; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+```
+
+See the `EXAMPLES` file for more.
 
 ## 🦺 Pending improvements (TODO in the code)
 
