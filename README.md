@@ -74,7 +74,7 @@ type multi_ord_result = variant {
 };
 ```
 
-Currently, the only function that can be queried through more than one API (and hence potentially returning an inconsitent result) is the SatInfo function.
+Currently, the only function that can be queried through more than one API (and hence potentially returning an inconsistent result) is the SatInfo function.
 
 ## 🔧 Deploy the smart contract locally
 
@@ -99,7 +99,7 @@ dfx canister call btc_ordinals bitgem_sat_info '(85000000000)' --with-cycles 100
 dfx canister call btc_ordinals hiro_sat_inscriptions '(947410401228752)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
 
 # Get the last inscription associated with the satoshi 947410401228752, specifying a max of 2KB per item.
-dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752 } }; providers = vec { variant { Hiro }; variant { Bitgem } };  query_options = opt record { offset = 10; limit = 1; }; max_kb_per_item = opt 2; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752 } }; providers = vec { variant { Hiro } };  query_options = opt record { offset = 10; limit = 1; }; max_kb_per_item = opt 2; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
 ```
 
 See the `EXAMPLES` file for more.
