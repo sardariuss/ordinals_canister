@@ -104,13 +104,25 @@ dfx canister call btc_ordinals request '(record { function = variant { SatInscri
 
 See the `EXAMPLES` file for more.
 
+## 💾 Default Maximum Kilobytes per Item
+
+>SatRange: 1 KiB
+>SatInfo: 1 KiB
+>SatInscriptions: 2 KiB
+>InscriptionInfo: 2 KiB
+>InscriptionContent: 5 KiB (chosen arbitrarily)
+>Brc20Details: 2 KiB
+>Brc20Holders: 1 KiB
+
+These values (except for InscriptionContent) were determined by examining several responses and selecting the next kilobyte as the maximum allowed.
+
 ## 🦺 Pending improvements (TODO in the code)
 
 - [ ] Store the results in a stable data structure to avoid having to make the same http outcall over and over for the same data
-- [ ] Verify the base cycles costs and computation performed to obtain the cost of processing an http outcall
 - [ ] Create an end-to-end test canister to thoroughly validate the `btc_ordinals` canister
 - [ ] Optimize possible unnecessary cloning of function arguments
 - [ ] Add a function that returns the default cycle cost of each `ord_function`
+- [ ] Run the send requests in parallel in the `request` function
 
 ## 🙏 Credits
 

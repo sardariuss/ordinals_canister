@@ -16,13 +16,18 @@ use crate::services::IsService;
 /// Used for setting the max response bytes.
 const ONE_KIB: u64 = 1_024;
 
+// Used to approximate the real size of the HTTP request message?
+// TODO: to validate, copied from the ETC-RPC canister
+pub const INGRESS_OVERHEAD_BYTES: u128 = 100;
+
 /// Cycles cost constants, based on
 /// https://internetcomputer.org/docs/current/developer-docs/gas-cost#details-cost-of-compute-and-storage-transactions-on-the-internet-computer
-pub const INGRESS_OVERHEAD_BYTES: u128 = 100;
+/// Warning: This assumes the canister runs on an application subnet (13 nodes)
 pub const INGRESS_MESSAGE_RECEIVED_COST: u128 = 1_200_000;
 pub const INGRESS_MESSAGE_BYTE_RECEIVED_COST: u128 = 2_000;
-pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000; // TODO: Double check (in the eth-rpc project, it is set to 400_000_000)
-pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400; // TODO: Double check (in the eth-rpc project, it is set to 100_000)
+pub const HTTP_OUTCALL_REQUEST_COST: u128 = 49_140_000;
+pub const HTTP_OUTCALL_BYTE_SENT_COST: u128 = 5_200;
+pub const HTTP_OUTCALL_BYTE_RECEIVED_COST: u128 = 10_400;
 
 #[ic_cdk::update]
 async fn request(args: OrdArgs) -> MultiOrdResult {
@@ -247,7 +252,7 @@ async fn pay_cycles(cycles_cost: u128) -> Result<(), OrdError> {
 async fn execute_request(
     request: CanisterHttpRequest,
     cycles: u128,
-) -> OrdResult {    
+) -> OrdResult {
     let http_response = request
         .send(cycles)
         .await
@@ -294,15 +299,21 @@ fn transform_http_response(args: TransformArgs) -> HttpResponse {
 /// Calculates the baseline cost of sending a request using HTTP outcalls.
 fn get_http_request_cost(
     url: &str,
-    payload_size_bytes: u64,
+    body_size_bytes: u64,
     max_response_bytes: u64,
 ) -> u128 {
-    let ingress_bytes = payload_size_bytes as u128 + url.len() as u128 + INGRESS_OVERHEAD_BYTES;
-    let base_cost = INGRESS_MESSAGE_RECEIVED_COST
-        + INGRESS_MESSAGE_BYTE_RECEIVED_COST * ingress_bytes
+    // Assume the request size = size(body) + size(url) + ingress overhead
+    let request_bytes = body_size_bytes as u128 + url.len() as u128 + INGRESS_OVERHEAD_BYTES;
+    // Take the worst case scenario where the response uses the maximum number of bytes.
+    let response_bytes = max_response_bytes as u128;
+    
+    // Add the price of receiving the message (for the call to transform context) 
+    // to the price of the http outcall.
+    INGRESS_MESSAGE_RECEIVED_COST
+        + INGRESS_MESSAGE_BYTE_RECEIVED_COST * response_bytes
         + HTTP_OUTCALL_REQUEST_COST
-        + HTTP_OUTCALL_BYTE_RECEIVED_COST * (ingress_bytes + max_response_bytes as u128);
-    base_cost as u128
+        + HTTP_OUTCALL_BYTE_SENT_COST * request_bytes
+        + HTTP_OUTCALL_BYTE_RECEIVED_COST * response_bytes
 }
 
 #[ic_cdk::query]
