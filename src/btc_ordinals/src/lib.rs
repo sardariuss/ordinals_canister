@@ -43,7 +43,7 @@ async fn request(args: OrdArgs) -> MultiOrdResult {
     };
 
     // Early return if the caller doesn't have enough cycles to pay for all the services.
-    match verify_cycles_balance(compute_total_cost(&prepared_requests)) {
+    match pay_cycles(compute_total_cost(&prepared_requests)) {
         Ok(_) => {},
         Err(err) => {
             return MultiOrdResult::Consistent(Err(err));
@@ -239,7 +239,7 @@ fn compute_total_cost(requests: &Vec<(Provider, CanisterHttpRequest)>) -> u128 {
     requests.iter().map(|request| request.1.cycles).sum()
 }
 
-fn verify_cycles_balance(cycles_cost: u128) -> Result<(), OrdError> {
+fn pay_cycles(cycles_cost: u128) -> Result<(), OrdError> {
     // Check that the caller has enough cycles to pay for the request.
     let cycles_available: u128 = ic_cdk::api::call::msg_cycles_available128();
     if cycles_available < cycles_cost {
@@ -249,6 +249,8 @@ fn verify_cycles_balance(cycles_cost: u128) -> Result<(), OrdError> {
         }
         .into());
     }
+    // Pay for the request.
+    ic_cdk::api::call::msg_cycles_accept128(cycles_cost);
     Ok(())
 }
 
@@ -273,7 +275,7 @@ async fn call_service(
 
     let request = prepare_request(provider, end_point, args.clone());
 
-    verify_cycles_balance(request.cycles)?;
+    pay_cycles(request.cycles)?;
 
     execute_request(request).await
 }
