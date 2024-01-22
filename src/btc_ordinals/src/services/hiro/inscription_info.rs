@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
-use crate::{types::{Provider, HiroSatInscription, OrdResult}, utils::deserialize_response};
+use crate::{types::{Provider, HiroSatInscription, OrdResult, InscriptionInfoArgs}, utils::deserialize_response};
 use std::ops::Add;
 
 pub struct ServiceHiroInscriptionInfo;
@@ -9,7 +9,7 @@ impl IsService for ServiceHiroInscriptionInfo {
 
     fn get_url(&self, args: Args) -> String {
         let inscriptions_id = match args.function {
-            OrdFunction::InscriptionInfo{ inscription_id } => inscription_id,
+            OrdFunction::InscriptionInfo(InscriptionInfoArgs{ inscription_id }) => inscription_id,
             _ => panic!("Invalid function: InscriptionInfo expected"),
         };
         BASE_URLS[&Provider::Hiro]
@@ -33,8 +33,7 @@ impl IsService for ServiceHiroInscriptionInfo {
 fn test_build_request() {
     let service: ServiceHiroInscriptionInfo = ServiceHiroInscriptionInfo;
     let args = Args {
-        function: OrdFunction::InscriptionInfo{ inscription_id: "38c46a8bf7ec90bc7f6b797e7dc84baa97f4e5fd4286b92fe1b50176d03b18dci0".to_string() },
-        query_options: None,
+        function: OrdFunction::InscriptionInfo(InscriptionInfoArgs{ inscription_id: "38c46a8bf7ec90bc7f6b797e7dc84baa97f4e5fd4286b92fe1b50176d03b18dci0".to_string() }),
         max_kb_per_item: None,
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/inscriptions/38c46a8bf7ec90bc7f6b797e7dc84baa97f4e5fd4286b92fe1b50176d03b18dci0");

@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 use ic_cdk::api::management_canister::http_request::HttpMethod;
 
 use crate::ONE_KIB;
-use crate::types::{Provider, EndPoint, Args, OrdFunction, Response, OrdError, QueryOptions};
+use crate::types::{Provider, EndPoint, Args, OrdFunction, Response, OrdError};
 
 use std::collections::BTreeMap;
 
@@ -32,51 +32,44 @@ pub enum Service {
 
 pub fn default_args(function: OrdFunction) -> Args {
     match function.clone() {
-        OrdFunction::SatRange{ utxo: _ } => Args {
+        OrdFunction::SatRange(_) => Args {
             function,
-            query_options: None,
             max_kb_per_item: Some(1),
         },
-        OrdFunction::SatInfo{ ordinal: _ } => Args {
+        OrdFunction::SatInfo(_) => Args {
             function,
-            query_options: None,
             max_kb_per_item: Some(1), // 1 KiB should be enough for a single sat info, the size of the response body is approximatly 400 bytes
         },
-        OrdFunction::SatInscriptions{ ordinal: _ } => Args {
+        OrdFunction::SatInscriptions(_) => Args {
             function,
-            query_options: Some(QueryOptions{ offset: 0, limit: 10 }),
             max_kb_per_item: Some(2), // 2 KiB should be enough for a single inscription, the size of the response body is approximatly 1400 bytes
         },
-        OrdFunction::InscriptionInfo{ inscription_id: _ } => Args {
+        OrdFunction::InscriptionInfo(_) => Args {
             function,
-            query_options: None,
             max_kb_per_item: Some(2), // 2 kiB (same as above)
         },
-        OrdFunction::InscriptionContent{ inscription_id: _ } => Args {
+        OrdFunction::InscriptionContent(_) => Args {
             function,
-            query_options: None,
             max_kb_per_item: Some(5), // 5 KiB, set arbitrarily because the size of the inscription content can vary
         },
-        OrdFunction::Brc20Details{ ticker: _ } => Args {
+        OrdFunction::Brc20Details(_) => Args {
             function,
-            query_options: None,
             max_kb_per_item: Some(2), // 2 KiB should be enough for a single brc20 details, the size of the response body is approximatly 800 bytes
         },
-        OrdFunction::Brc20Holders{ ticker: _ } => Args {
+        OrdFunction::Brc20Holders(_) => Args {
             function,
-            query_options: Some(QueryOptions{ offset: 0, limit: 10 }),
             max_kb_per_item: Some(1), // 1 Kib should be more than enough for a single brc20 holder, the size of the response body is approximatly 200 bytes
         },
     }
 }
 
-pub fn unwrap_query_options(args: Args) -> QueryOptions {
-    args.query_options.expect("Query options are missing")
-}
-
 pub fn unwrap_max_response_bytes(args: Args) -> u64 {
-    let number_items = args.query_options.unwrap_or(QueryOptions{ offset: 0, limit: 1 }).limit;
-    args.max_kb_per_item.expect("Max kbyte per item is missing") * number_items * ONE_KIB as u64
+    let num_items = match args.function.clone() {
+        OrdFunction::SatInscriptions(args) => args.limit,
+        OrdFunction::Brc20Holders(args) => args.limit,
+        _ => 1,
+    };
+    args.max_kb_per_item.expect("Max kbyte per item is missing") * num_items * ONE_KIB as u64
 }
 
 pub trait IsService {
@@ -176,13 +169,13 @@ lazy_static! {
 // Return the end point associated with the given ord function
 pub fn deduce_end_point(function: OrdFunction) -> EndPoint {
     match function {
-        OrdFunction::SatRange{ utxo: _ }                     => EndPoint::SatRange,
-        OrdFunction::SatInfo{ ordinal: _ }                   => EndPoint::SatInfo,
-        OrdFunction::SatInscriptions{ ordinal: _ }           => EndPoint::SatInscriptions,
-        OrdFunction::InscriptionInfo{ inscription_id: _ }    => EndPoint::InscriptionInfo,
-        OrdFunction::InscriptionContent{ inscription_id: _ } => EndPoint::InscriptionContent,
-        OrdFunction::Brc20Details{ ticker: _ }               => EndPoint::Brc20Details,
-        OrdFunction::Brc20Holders{ ticker: _ }               => EndPoint::Brc20Holders,
+        OrdFunction::SatRange(_)           => EndPoint::SatRange,
+        OrdFunction::SatInfo(_)            => EndPoint::SatInfo,
+        OrdFunction::SatInscriptions(_)    => EndPoint::SatInscriptions,
+        OrdFunction::InscriptionInfo(_)    => EndPoint::InscriptionInfo,
+        OrdFunction::InscriptionContent(_) => EndPoint::InscriptionContent,
+        OrdFunction::Brc20Details(_)       => EndPoint::Brc20Details,
+        OrdFunction::Brc20Holders(_)       => EndPoint::Brc20Holders,
     }
 }
 

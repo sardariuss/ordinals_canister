@@ -4,6 +4,11 @@
       "candid": "src/btc_ordinals/btc_ordinals.did",
       "package": "btc_ordinals",
       "type": "rust"
+    },
+    "e2e": {
+      "type": "motoko",
+      "main": "src/e2e/Main.mo",
+      "dependencies": ["btc_ordinals"]
     }
   },
   "defaults": {

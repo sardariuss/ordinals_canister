@@ -14,22 +14,23 @@ The ordinal canister uses this mechanism to access and aggregate data from vario
 
 To query ordinal information from the ordinal canister, you have two options: use one of the specific named functions or employ the generic request method.
 
-### 🔫 Specific functions
+### Specific functions
 
 ```
-  bitgem_sat_range         : (utxo)           -> (sat_range_result);
-  bitgem_sat_info          : (sat)            -> (sat_info_result);
-  hiro_sat_info            : (sat)            -> (sat_info_result);
-  hiro_sat_inscriptions    : (sat)            -> (hiro_sat_inscriptions_result);
-  hiro_inscription_info    : (inscription_id) -> (hiro_sat_inscription_result);
-  hiro_inscription_content : (inscription_id) -> (hiro_inscription_content_result);
-  hiro_brc20_details       : (ticker)         -> (brc20_details_result);
-  hiro_brc20_holders       : (ticker)         -> (brc20_holders_result);
+bitgem_sat_range         : (sat_range_args)           -> (sat_range_result);
+bitgem_sat_info          : (sat_info_args)            -> (sat_info_result);
+hiro_sat_info            : (sat_info_args)            -> (sat_info_result);
+hiro_sat_inscriptions    : (sat_inscriptions_args)    -> (hiro_sat_inscriptions_result);
+hiro_inscription_info    : (inscription_info_args)    -> (hiro_sat_inscription_result);
+hiro_inscription_content : (inscription_content_args) -> (hiro_inscription_content_result);
+hiro_brc20_details       : (brc20_details_args)       -> (brc20_details_result);
+hiro_brc20_holders       : (brc20_holders_args)       -> (brc20_holders_result);
 ```
+(See btc_ordinals.did for the types definition)
 
-Each function is prefixed by the provider used to retrieve the associated data. In contrast to the generic request method, these functions have a fixed maximum KB per item (required by the HTTP outcall) and fixed query options (if applicable). They provide an intuitive way to query ordinal information.
+Each function is prefixed by the provider used to retrieve the associated data. In contrast to the generic request method, these functions have a fixed maximum KB per item (required by the HTTP outcall). They provide an intuitive way to query ordinal information.
 
-### 🏹 The generic `request` method
+### The generic `request` method
 
 ```
 request                  : (ord_args)       -> (multi_ord_result);
@@ -39,7 +40,6 @@ where
   type ord_args = record {
     function: ord_function;
     providers: vec provider;
-    query_options: opt query_options;
     max_kb_per_item: opt nat64;
   };
   type provider = variant {
@@ -55,26 +55,27 @@ where
     Brc20Details:       record { ticker         : ticker;         };
     Brc20Holders:       record { ticker         : ticker;         };
   };
-  type query_options = record {
-    limit: nat64;
-    offset: nat64;
+  type multi_ord_result = variant {
+    Consistent: response_result;
+    Inconsistent: vec record { provider: provider; result: response_result; };
   };
 ```
 
-Here, args is a record with fields for the function, query options, and maximum KB per item. The function variant can be one of the specific functions listed above. The query_options record includes limits and offsets.
+Here, args is a record with fields for the function and maximum KB per item. The function variant can be one of the specific functions listed above.
 
-This method allows querying the same data as the specific functions, offering the flexibility to choose the provider and override default parameters such as maximum KB per item, query limit, and offset. Note if the list of providers is left empty, all available providers are taken.
+This method allows querying the same data as the specific functions, offering the flexibility to choose the provider and override the maximum KB per item. Note if the list of providers is left empty, all available providers are taken.
 
 The request method supports querying ordinal information through multiple ordinal APIs (if available), returning a multi_ord_result. This result can be either Consistent or Inconsistent depending on whether the outcomes are the same or different across different APIs.
 
+Currently, the only function that can be queried through more than one API (and hence potentially returning an inconsistent result) is the SatInfo function.
+
+### The `request_cost` method
+
 ```
-type multi_ord_result = variant {
-  Consistent: response_result;
-  Inconsistent: vec record { provider: provider; result: response_result; };
-};
+request_cost : (ord_args) -> (request_cost_result);
 ```
 
-Currently, the only function that can be queried through more than one API (and hence potentially returning an inconsistent result) is the SatInfo function.
+This function takes the same arguments as the `request` method. It returns how many cycles you need to send with the request for the given `ord_args`. Providing more cycles will succeed. Providing less cycles will return an error.
 
 ## 🔧 Deploy the smart contract locally
 
@@ -94,12 +95,15 @@ Once the job completes, your application will be available at `http://127.0.0.1:
 
 ```bash
 # Get information for the satoshi 85000000000 via the bitgem provider
-dfx canister call btc_ordinals bitgem_sat_info '(85000000000)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+dfx canister call btc_ordinals bitgem_sat_info '(record { ordinal = 85000000000 })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
 # Get the inscriptions associated to the satoshi 947410401228752 via the hiro provider (no control over query options or max kb per item)
-dfx canister call btc_ordinals hiro_sat_inscriptions '(947410401228752)' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+dfx canister call btc_ordinals hiro_sat_inscriptions '(record { ordinal = 947410401228752; limit = 10; offset = 0;})' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+
+# To get the request cost
+dfx canister call btc_ordinals request_cost '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752; offset = 10; limit = 1; } }; providers = vec { variant { Hiro } }; max_kb_per_item = opt 2; })'
 
 # Get the last inscription associated with the satoshi 947410401228752, specifying a max of 2KB per item.
-dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752 } }; providers = vec { variant { Hiro } };  query_options = opt record { offset = 10; limit = 1; }; max_kb_per_item = opt 2; })' --with-cycles 1000000000 --wallet $(dfx identity get-wallet)
+dfx canister call btc_ordinals request '(record { function = variant { SatInscriptions = record { ordinal = 947410401228752; offset = 10; limit = 1; } }; providers = vec { variant { Hiro } }; max_kb_per_item = opt 2; })' --with-cycles ${REQUEST_COST} --wallet $(dfx identity get-wallet)
 ```
 
 See the `EXAMPLES` file for more.
@@ -119,10 +123,12 @@ These values (except for InscriptionContent) were determined by examining severa
 ## 🦺 Pending improvements (TODO in the code)
 
 - [ ] Store the results in a stable data structure to avoid having to make the same http outcall over and over for the same data
-- [ ] Create an end-to-end test canister to thoroughly validate the `btc_ordinals` canister
-- [ ] Optimize possible unnecessary cloning of function arguments
-- [ ] Add a function that returns the default cycle cost of each `ord_function`
 - [ ] Run the send requests in parallel in the `request` function
+
+## ℹ️ Notes
+
+- If you get the error `HttpSendError = record { rejection_code = variant { SysFatal } }`, it's probably that the max_kb_per_item is too low compared to the size of the returned response
+- For an unknown reason, when running the e2e `get_sat_ranges` function locally, the replica returns the error: `reject code CanisterReject, reject message Canister ghsi2-tqaaa-aaaan-aaaca-cai not found, error code None`
 
 ## 🙏 Credits
 

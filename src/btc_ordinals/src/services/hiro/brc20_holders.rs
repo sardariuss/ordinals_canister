@@ -1,6 +1,6 @@
-use super::super::{IsService, Args, Response, OrdFunction, unwrap_query_options, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
-use crate::{types::{Provider, HiroBrc20Holders, OrdResult}, utils::deserialize_response};
+use crate::{types::{Provider, HiroBrc20Holders, OrdResult, Brc20HoldersArgs}, utils::deserialize_response};
 use std::ops::Add;
 
 pub struct ServiceBrc20Holders;
@@ -8,19 +8,18 @@ pub struct ServiceBrc20Holders;
 impl IsService for ServiceBrc20Holders {
 
     fn get_url(&self, args: Args) -> String {
-        let ticker = match args.clone().function {
-            OrdFunction::Brc20Holders{ ticker } => ticker,
+        let (ticker, limit, offset) = match args.clone().function {
+            OrdFunction::Brc20Holders(Brc20HoldersArgs{ ticker, limit, offset }) => (ticker, limit, offset),
             _ => panic!("Invalid function: Brc20Holders expected"),
         };
-        let query_options = unwrap_query_options(args);
         BASE_URLS[&Provider::Hiro]
             .clone()
             .add(
                 format!(
                     "/ordinals/v1/brc-20/tokens/{}/holders?offset={}&limit={}",
                     ticker,
-                    query_options.offset,
-                    query_options.limit
+                    offset,
+                    limit
                 )
                 .as_str(),
             )
@@ -35,12 +34,9 @@ impl IsService for ServiceBrc20Holders {
 #[test]
 fn test_build_request() {
 
-    use crate::types::QueryOptions;
-
     let service = ServiceBrc20Holders;
     let args = Args {
-        function: OrdFunction::Brc20Holders{ ticker: "ordi".to_string() },
-        query_options: Some( QueryOptions{ offset: 2, limit: 5 }),
+        function: OrdFunction::Brc20Holders(Brc20HoldersArgs{ ticker: "ordi".to_string(), offset: 2, limit: 5 }),
         max_kb_per_item: None,
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/brc-20/tokens/ordi/holders?offset=2&limit=5");

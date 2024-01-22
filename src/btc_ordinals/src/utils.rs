@@ -40,7 +40,6 @@ where
 pub fn from_ord_args(ord_args: OrdArgs) -> Args {
     Args {
         function: ord_args.function,
-        query_options: ord_args.query_options,
         max_kb_per_item: ord_args.max_kb_per_item,
     }
 }

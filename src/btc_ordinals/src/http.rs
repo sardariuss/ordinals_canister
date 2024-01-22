@@ -11,8 +11,10 @@ use ic_cdk::{
 use crate::types::HttpSendError;
 
 /// Used to build a request to the Management Canister's `http_request` method.
+#[derive(Clone, Debug)]
 pub struct CanisterHttpRequest {
     args: CanisterHttpRequestArgument,
+    pub cycles: u128,
 }
 
 impl Default for CanisterHttpRequest {
@@ -42,6 +44,7 @@ impl CanisterHttpRequest {
                 method: HttpMethod::GET,
                 transform: None,
             },
+            cycles: Default::default(),
         }
     }
 
@@ -83,9 +86,16 @@ impl CanisterHttpRequest {
         self
     }
 
+    /// Updates the cycles of the request.
+    pub fn cycles(mut self, cycles: u128) -> Self {
+        self.cycles = cycles;
+        self
+    }
+
     /// Wraps around `http_request` to issue a request to the `http_request` endpoint.
-    pub async fn send(self, cycles: u128) -> Result<HttpResponse, HttpSendError> {
-        http_request(self.args, cycles)
+    pub async fn send(self) -> Result<HttpResponse, HttpSendError> {
+        
+        http_request(self.args, self.cycles)
             .await
             .map(|(response,)| response)
             .map_err(|(rejection_code, _)| HttpSendError{ rejection_code })

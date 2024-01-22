@@ -1,6 +1,6 @@
-use super::super::{IsService, Args, Response, OrdFunction, unwrap_query_options, BASE_URLS};
+use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
-use crate::{types::{Provider, HiroSatInscriptions, OrdResult}, utils::deserialize_response};
+use crate::{types::{Provider, HiroSatInscriptions, OrdResult, SatInscriptionsArgs}, utils::deserialize_response};
 use std::ops::Add;
 
 pub struct ServiceHiroSatInscriptions;
@@ -8,19 +8,18 @@ pub struct ServiceHiroSatInscriptions;
 impl IsService for ServiceHiroSatInscriptions {
 
     fn get_url(&self, args: Args) -> String {
-        let ordinal = match args.clone().function {
-            OrdFunction::SatInscriptions{ ordinal } => ordinal,
+        let (ordinal, limit, offset) = match args.clone().function {
+            OrdFunction::SatInscriptions(SatInscriptionsArgs{ ordinal, limit, offset }) => (ordinal, limit, offset),
             _ => panic!("Invalid function: SatInscription expected"),
         };
-        let query_options = unwrap_query_options(args);
         BASE_URLS[&Provider::Hiro]
             .clone()
             .add(
                 format!(
                     "/ordinals/v1/sats/{}/inscriptions?offset={}&limit={}",
                     ordinal,
-                    query_options.offset,
-                    query_options.limit
+                    offset,
+                    limit
                 )
                 .as_str(),
             )
@@ -35,12 +34,9 @@ impl IsService for ServiceHiroSatInscriptions {
 #[test]
 fn test_build_request() {
 
-    use crate::types::QueryOptions;
-
     let service = ServiceHiroSatInscriptions;
     let args = Args {
-        function: OrdFunction::SatInscriptions{ ordinal: 947410401228752 },
-        query_options: Some( QueryOptions{ offset: 0, limit: 2 }),
+        function: OrdFunction::SatInscriptions(SatInscriptionsArgs{ ordinal: 947410401228752, offset: 0, limit: 2 }),
         max_kb_per_item: None,
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/sats/947410401228752/inscriptions?offset=0&limit=2");

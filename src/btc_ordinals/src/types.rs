@@ -50,46 +50,64 @@ pub enum Provider {
 pub struct OrdArgs {
     pub function: OrdFunction,
     pub providers: Vec<Provider>,
-    pub query_options: Option<QueryOptions>,
     pub max_kb_per_item: Option<u64>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub struct Args {
     pub function: OrdFunction,
-    pub query_options: Option<QueryOptions>,
     pub max_kb_per_item: Option<u64>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
 pub enum OrdFunction {
-    SatRange { 
-        utxo: Utxo,
-    },
-    SatInfo {
-        ordinal: u64,
-    },
-    SatInscriptions {
-        ordinal: u64,
-    },
-    InscriptionInfo {
-        inscription_id: String,
-    },
-    InscriptionContent {
-        inscription_id: String,
-    },
-    Brc20Details {
-        ticker: String,
-    },
-    Brc20Holders {
-        ticker: String,
-    },
+    SatRange(SatRangeArgs),
+    SatInfo(SatInfoArgs),
+    SatInscriptions(SatInscriptionsArgs),
+    InscriptionInfo(InscriptionInfoArgs),
+    InscriptionContent(InscriptionContentArgs),
+    Brc20Details(Brc20DetailsArgs),
+    Brc20Holders(Brc20HoldersArgs),
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct QueryOptions {
-    pub limit: u64,
+pub struct SatRangeArgs { 
+    pub utxos: Vec<Utxo>,
+    pub exclude_common_ranges: bool,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct SatInfoArgs {
+    pub ordinal: u64
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct SatInscriptionsArgs {
+    pub ordinal: u64,
     pub offset: u64,
+    pub limit: u64,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct InscriptionInfoArgs {
+    pub inscription_id: String
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct InscriptionContentArgs {
+    pub inscription_id: String
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct Brc20DetailsArgs {
+    pub ticker: String
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize)]
+pub struct Brc20HoldersArgs {
+    pub ticker: String,
+    pub offset: u64,
+    pub limit: u64,
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord, CandidType, Deserialize, Copy, Clone)]
@@ -105,7 +123,7 @@ pub enum EndPoint {
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
 pub enum Response {
-    SatRange(BitgemSatRanges),
+    SatRange(SatRanges),
     SatInfo(SatInfo),
     SatInscriptions(HiroSatInscriptions),
     InscriptionInfo(HiroSatInscription),
@@ -122,19 +140,36 @@ pub struct Utxo {
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
-#[allow(non_snake_case)]
-pub struct BitgemSatRanges {
-    pub ranges : Vec<BitgemSatRange>,
-    pub exoticRanges : Vec<BitgemExoticSatRange>,
+pub struct SatRanges {
+    pub ranges: Option<Vec<SatRange>>,
+    pub exotic_ranges : Option<Vec<ExoticSatRange>>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
-pub struct BitgemSatRange {
+#[allow(non_snake_case)]
+pub struct BitgemSatRanges {
+    pub ranges : Option<Vec<SatRange>>,
+    pub exoticRanges : Option<Vec<BitgemExoticSatRange>>,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
+pub struct SatRange {
     pub utxo : String,
     pub start : u64,
     pub size : u64,
     pub end : u64,
     pub offset : u64,
+}
+
+#[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
+pub struct ExoticSatRange {
+    pub utxo : String,
+    pub start : u64,
+    pub size : u64,
+    pub end : u64,
+    pub offset : u64,
+    pub rarity : SatoshiRarity,
+    pub satributes : Vec<String>,
 }
 
 #[derive(Clone, Debug, CandidType, Deserialize, Eq, PartialEq)]
@@ -232,12 +267,6 @@ pub struct HiroSatInscriptions {
     pub offset: u64,
     pub total: u64,
     pub results: Vec<HiroSatInscription>,
-}
-#[derive(Clone, Debug, CandidType, Deserialize)]
-pub struct HiroSatInscriptionsArgs {
-    pub ordinal: u64,
-    pub limit: u64,
-    pub offset: u64,
 }
 
 pub type InscriptionContent = Vec<u8>;

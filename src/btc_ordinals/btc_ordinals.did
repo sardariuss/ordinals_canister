@@ -1,27 +1,34 @@
 type ord_args = record {
   function: ord_function;
   providers: vec provider;
-  query_options: opt query_options;
   max_kb_per_item: opt nat64;
 };
 
 type ord_function = variant {
-  SatRange:           record { utxo           : utxo;           };
-  SatInfo:            record { ordinal        : nat64;          };
-  SatInscriptions:    record { ordinal        : nat64;          };
-  InscriptionInfo:    record { inscription_id : inscription_id; };
-  InscriptionContent: record { inscription_id : inscription_id; };
-  Brc20Details:       record { ticker         : ticker;         };
-  Brc20Holders:       record { ticker         : ticker;         };
+  SatRange:           sat_range_args;
+  SatInfo:            sat_info_args;
+  SatInscriptions:    sat_inscriptions_args;
+  InscriptionInfo:    inscription_info_args;
+  InscriptionContent: inscription_content_args;
+  Brc20Details:       brc20_details_args;
+  Brc20Holders:       brc20_holders_args;
 };
 
-type query_options = record {
-  limit: nat64;
-  offset: nat64;
-};
+type sat_range_args           = record { utxos                 : vec utxo; 
+                                         exclude_common_ranges : bool;           };
+type sat_info_args            = record { ordinal               : nat64;          };
+type sat_inscriptions_args    = record { ordinal               : nat64;          
+                                         limit                 : nat64;
+                                         offset                : nat64;          };
+type inscription_info_args    = record { inscription_id        : inscription_id; };
+type inscription_content_args = record { inscription_id        : inscription_id; };
+type brc20_details_args       = record { ticker                : ticker;         };
+type brc20_holders_args       = record { ticker                : ticker;
+                                         limit                 : nat64;
+                                         offset                : nat64;          };
 
 type response = variant {
-  SatRange: bitgem_sat_ranges;
+  SatRange: sat_ranges;
   SatInfo: sat_info;
   SatInscriptions: hiro_sat_inscriptions;
   InscriptionInfo: hiro_sat_inscription;
@@ -37,12 +44,12 @@ type utxo = record {
 
 type sat = nat64;
 
-type bitgem_sat_ranges = record {
-  ranges: vec bitgem_sat_range;
-  exoticRanges: vec bitgem_exotic_sat_range;
+type sat_ranges = record {
+  ranges: opt vec sat_range;
+  exotic_ranges: opt vec exotic_sat_range;
 };
 
-type bitgem_sat_range = record {
+type sat_range = record {
   utxo: text;
   start: nat64;
   size: nat64;
@@ -50,12 +57,13 @@ type bitgem_sat_range = record {
   offset: nat64;
 };
 
-type bitgem_exotic_sat_range = record {
+type exotic_sat_range = record {
   utxo: text;
   start: nat64;
   size: nat64;
   end: nat64;
   offset: nat64;
+  rarity: satoshi_rarity;
   satributes : vec text;
 };
 
@@ -205,8 +213,13 @@ type response_result = variant {
   Err: ord_error;
 };
 
+type request_cost_result = variant {
+  Ok: nat;
+  Err: ord_error;
+};
+
 type sat_range_result = variant {
-  Ok: bitgem_sat_ranges;
+  Ok: sat_ranges;
   Err: ord_error;
 };
 
@@ -242,24 +255,26 @@ type brc20_holders_result = variant {
 
 service : () -> {
 
-  "request"                  : (ord_args)       -> (multi_ord_result);
+  "request"                  : (ord_args)                 -> (multi_ord_result);
 
-  "bitgem_sat_range"         : (utxo)           -> (sat_range_result);
+  "request_cost"             : (ord_args)                 -> (request_cost_result);
 
-  "bitgem_sat_info"          : (sat)            -> (sat_info_result);
+  "bitgem_sat_range"         : (sat_range_args)           -> (sat_range_result);
 
-  "hiro_sat_info"            : (sat)            -> (sat_info_result);
+  "bitgem_sat_info"          : (sat_info_args)            -> (sat_info_result);
 
-  "hiro_sat_inscriptions"    : (sat)            -> (hiro_sat_inscriptions_result);
+  "hiro_sat_info"            : (sat_info_args)            -> (sat_info_result);
 
-  "hiro_inscription_info"    : (inscription_id) -> (hiro_sat_inscription_result);
+  "hiro_sat_inscriptions"    : (sat_inscriptions_args)    -> (hiro_sat_inscriptions_result);
 
-  "hiro_inscription_content" : (inscription_id) -> (hiro_inscription_content_result);
+  "hiro_inscription_info"    : (inscription_info_args)    -> (hiro_sat_inscription_result);
 
-  "hiro_brc20_details"       : (ticker)         -> (brc20_details_result);
+  "hiro_inscription_content" : (inscription_content_args) -> (hiro_inscription_content_result);
 
-  "hiro_brc20_holders"       : (ticker)         -> (brc20_holders_result);
+  "hiro_brc20_details"       : (brc20_details_args)       -> (brc20_details_result);
 
-  "cycles_balance"           : ()               -> (nat64);
+  "hiro_brc20_holders"       : (brc20_holders_args)       -> (brc20_holders_result);
+
+  "cycles_balance"           : ()                         -> (nat64);
   
 }

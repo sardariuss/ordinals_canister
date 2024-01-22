@@ -1,6 +1,6 @@
 use super::super::{IsService, Args, Response, OrdFunction, BASE_URLS};
 
-use crate::{types::{Provider, HiroSatInfo, SatInfo, OrdResult, OrdError}, utils::{map_str_rarity, deserialize_response}};
+use crate::{types::{Provider, HiroSatInfo, SatInfo, OrdResult, OrdError, SatInfoArgs}, utils::{map_str_rarity, deserialize_response}};
 
 use std::ops::Add;
 
@@ -10,7 +10,7 @@ impl IsService for ServiceHiroSatInfo {
 
     fn get_url(&self, args: Args) -> String {
         let ordinal = match args.function {
-            OrdFunction::SatInfo{ ordinal } => ordinal,
+            OrdFunction::SatInfo(SatInfoArgs{ ordinal }) => ordinal,
             _ => panic!("Invalid function: SatInfo expected"),
         };
         BASE_URLS[&Provider::Hiro]
@@ -39,8 +39,7 @@ impl IsService for ServiceHiroSatInfo {
 fn test_build_request() {
     let service = ServiceHiroSatInfo;
     let args = Args {
-        function: OrdFunction::SatInfo{ ordinal: 85000000000 },
-        query_options: None,
+        function: OrdFunction::SatInfo(SatInfoArgs{ ordinal: 85000000000 }),
         max_kb_per_item: None,
     };
     assert_eq!(service.get_url(args.clone()), "https://api.hiro.so/ordinals/v1/sats/85000000000");
