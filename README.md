@@ -47,13 +47,13 @@ where
     Bitgem;
   };
   type ord_function = variant {
-    SatRange:           record { utxo           : utxo;           };
-    SatInfo:            record { ordinal        : nat64;          };
-    SatInscriptions:    record { ordinal        : nat64;          };
-    InscriptionInfo:    record { inscription_id : inscription_id; };
-    InscriptionContent: record { inscription_id : inscription_id; };
-    Brc20Details:       record { ticker         : ticker;         };
-    Brc20Holders:       record { ticker         : ticker;         };
+    SatRange:           sat_range_args;
+    SatInfo:            sat_info_args;
+    SatInscriptions:    sat_inscriptions_args;
+    InscriptionInfo:    inscription_info_args;
+    InscriptionContent: inscription_content_args;
+    Brc20Details:       brc20_details_args;
+    Brc20Holders:       brc20_holders_args;
   };
   type multi_ord_result = variant {
     Consistent: response_result;
