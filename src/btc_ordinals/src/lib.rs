@@ -12,7 +12,6 @@ use types::{SatRanges, SatInfo, HiroSatInscription, HiroSatInscriptions, Provide
 use utils::from_ord_args;
 
 use crate::http::CanisterHttpRequest;
-use crate::services::IsService;
 
 /// Used for setting the max response bytes.
 const ONE_KIB: u64 = 1_024;

@@ -19,17 +19,6 @@ use hiro::inscription_content::ServiceHiroInscriptionContent;
 use hiro::brc20_details::ServiceBrc20Details;
 use hiro::brc20_holders::ServiceBrc20Holders;
 
-pub enum Service {
-    SatRange(ServiceBitgemSatRange),
-    BitgemSatInfo(ServiceBitgemSatInfo),
-    HiroSatInfo(ServiceHiroSatInfo),
-    SatInscriptions(ServiceHiroSatInscriptions),
-    InscriptionInfo(ServiceHiroInscriptionInfo),
-    InscriptionContent(ServiceHiroInscriptionContent),
-    Brc20Details(ServiceBrc20Details),
-    Brc20Holders(ServiceBrc20Holders),
-}
-
 pub fn default_args(function: OrdFunction) -> Args {
     match function.clone() {
         OrdFunction::SatRange(_) => Args {
@@ -72,7 +61,7 @@ pub fn unwrap_max_response_bytes(args: Args) -> u64 {
     args.max_kb_per_item.expect("Max kbyte per item is missing") * num_items * ONE_KIB as u64
 }
 
-pub trait IsService {
+pub trait IsService: Sync {
    
     fn get_url(&self, args: Args) -> String;
     
@@ -87,61 +76,7 @@ pub trait IsService {
     fn extract_response(&self, bytes: &[u8]) -> Result<Response, OrdError>;
 }
 
-impl IsService for Service {
-    
-    fn get_url(&self, args: Args) -> String {
-        match self {
-            Service::SatRange          (service) => service.get_url(args),
-            Service::BitgemSatInfo     (service) => service.get_url(args),
-            Service::HiroSatInfo       (service) => service.get_url(args),
-            Service::SatInscriptions   (service) => service.get_url(args),
-            Service::InscriptionInfo   (service) => service.get_url(args),
-            Service::InscriptionContent(service) => service.get_url(args),
-            Service::Brc20Details      (service) => service.get_url(args),
-            Service::Brc20Holders      (service) => service.get_url(args),
-        }
-    }
-
-    fn get_body(&self, args: Args) -> Option<Vec<u8>> {
-        match self {
-            Service::SatRange          (service) => service.get_body(args),
-            Service::BitgemSatInfo     (service) => service.get_body(args),
-            Service::HiroSatInfo       (service) => service.get_body(args),
-            Service::SatInscriptions   (service) => service.get_body(args),
-            Service::InscriptionInfo   (service) => service.get_body(args),
-            Service::InscriptionContent(service) => service.get_body(args),
-            Service::Brc20Details      (service) => service.get_body(args),
-            Service::Brc20Holders      (service) => service.get_body(args),
-        }
-    }
-
-    fn get_method(&self) -> HttpMethod {
-        match self {
-            Service::SatRange          (service) => service.get_method(),
-            Service::BitgemSatInfo     (service) => service.get_method(),
-            Service::HiroSatInfo       (service) => service.get_method(),
-            Service::SatInscriptions   (service) => service.get_method(),
-            Service::InscriptionInfo   (service) => service.get_method(),
-            Service::InscriptionContent(service) => service.get_method(),
-            Service::Brc20Details      (service) => service.get_method(),
-            Service::Brc20Holders      (service) => service.get_method(),
-        }
-    }
-
-    fn extract_response(&self, bytes: &[u8]) -> Result<Response, OrdError> {
-        match self {
-            Service::SatRange          (service) => service.extract_response(bytes),
-            Service::BitgemSatInfo     (service) => service.extract_response(bytes),
-            Service::HiroSatInfo       (service) => service.extract_response(bytes),
-            Service::SatInscriptions   (service) => service.extract_response(bytes),
-            Service::InscriptionInfo   (service) => service.extract_response(bytes),
-            Service::InscriptionContent(service) => service.extract_response(bytes),
-            Service::Brc20Details      (service) => service.extract_response(bytes),
-            Service::Brc20Holders      (service) => service.extract_response(bytes),
-        }
-    }
-}
-
+// TODO: Use OnceCell instead
 lazy_static! {
     pub static ref BASE_URLS: BTreeMap<Provider, String> = {
         let mut map = BTreeMap::new();
@@ -152,16 +87,16 @@ lazy_static! {
 }
 
 lazy_static! {
-    pub static ref SERVICES: BTreeMap<(Provider, EndPoint), Service> = {
-        let mut map = BTreeMap::new();
-        map.insert((Provider::Bitgem, EndPoint::SatRange          ), Service::SatRange          (ServiceBitgemSatRange        ));
-        map.insert((Provider::Bitgem, EndPoint::SatInfo           ), Service::BitgemSatInfo     (ServiceBitgemSatInfo         ));
-        map.insert((Provider::Hiro  , EndPoint::SatInfo           ), Service::HiroSatInfo       (ServiceHiroSatInfo           ));
-        map.insert((Provider::Hiro  , EndPoint::SatInscriptions   ), Service::SatInscriptions   (ServiceHiroSatInscriptions   ));
-        map.insert((Provider::Hiro  , EndPoint::InscriptionInfo   ), Service::InscriptionInfo   (ServiceHiroInscriptionInfo   ));
-        map.insert((Provider::Hiro  , EndPoint::InscriptionContent), Service::InscriptionContent(ServiceHiroInscriptionContent));
-        map.insert((Provider::Hiro  , EndPoint::Brc20Details      ), Service::Brc20Details      (ServiceBrc20Details          ));
-        map.insert((Provider::Hiro  , EndPoint::Brc20Holders      ), Service::Brc20Holders      (ServiceBrc20Holders          ));
+    pub static ref SERVICES: BTreeMap<(Provider, EndPoint), std::sync::Arc<dyn IsService + Send + Sync>> = {
+        let mut map : BTreeMap<(Provider, EndPoint), std::sync::Arc<dyn IsService + Send + Sync>> = BTreeMap::new();
+        map.insert((Provider::Bitgem, EndPoint::SatRange          ), std::sync::Arc::new(ServiceBitgemSatRange        ));
+        map.insert((Provider::Bitgem, EndPoint::SatInfo           ), std::sync::Arc::new(ServiceBitgemSatInfo         ));
+        map.insert((Provider::Hiro  , EndPoint::SatInfo           ), std::sync::Arc::new(ServiceHiroSatInfo           ));
+        map.insert((Provider::Hiro  , EndPoint::SatInscriptions   ), std::sync::Arc::new(ServiceHiroSatInscriptions   ));
+        map.insert((Provider::Hiro  , EndPoint::InscriptionInfo   ), std::sync::Arc::new(ServiceHiroInscriptionInfo   ));
+        map.insert((Provider::Hiro  , EndPoint::InscriptionContent), std::sync::Arc::new(ServiceHiroInscriptionContent));
+        map.insert((Provider::Hiro  , EndPoint::Brc20Details      ), std::sync::Arc::new(ServiceBrc20Details          ));
+        map.insert((Provider::Hiro  , EndPoint::Brc20Holders      ), std::sync::Arc::new(ServiceBrc20Holders          ));
         map
     };
 }

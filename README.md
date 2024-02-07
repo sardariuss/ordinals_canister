@@ -10,6 +10,16 @@ The [Internet Computer](https://internetcomputer.org/) enable canisters to direc
 
 The ordinal canister uses this mechanism to access and aggregate data from various ordinal APIs. Currently, two providers, [Hiro](https://docs.hiro.so/ordinals/) and [Bitgem](https://docs.bitgem.tech/), are employed for this purpose.
 
+## 🚨 API considerations
+
+### Bitgem
+
+Bitgem has recently decided to retire their publicly available API to save on server costs. It means you know need to self host it by following the instructions on [github](https://github.com/BitGemTech/exotic-indexer). You will need to change the Bitgem URL in the code (see BASE_URLS) accordingly.
+
+### Hiro
+
+The Hiro's API is public, but subjects to Hiro's rate limit policy. If you need to make an intense use the Hiro API, you will need to request an [API key](https://docs.hiro.so/api-keys) and adapt the code of the canister accordingly.
+
 ## 📜 Public interface
 
 To query ordinal information from the ordinal canister, you have two options: use one of the specific named functions or employ the generic request method.

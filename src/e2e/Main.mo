@@ -113,24 +113,27 @@ shared actor class Main() {
         let initial_balance = ExperimentalCycles.available();
         var total : Nat = 0;
 
-        // sat_range 
-        let sat_range_args : BtcOrdinalsCanister.ord_args = { 
-            function = #SatRange({
-                utxos = [{ txid = "0a4ae1923b59e545e82dc7067965fe02304635db665806dee76e7ead7e002d41"; vout = 1; }];
-                exclude_common_ranges = true;
-            });
-            providers = [];
-            max_kb_per_item = ?2;
-        };
-        total := payCost(await BtcOrdinalsCanister.request_cost(sat_range_args), total);
-        assertOk("SatRange", await BtcOrdinalsCanister.request(sat_range_args));
+        // TODO: SatRange is commented out because BitGem API has been publicly retired.
+        // If you want to have access to BitGem endpoints, you need to self host it: https://github.com/BitGemTech/exotic-indexer.
+
+//        // sat_range 
+//        let sat_range_args : BtcOrdinalsCanister.ord_args = { 
+//            function = #SatRange({
+//                utxos = [{ txid = "0a4ae1923b59e545e82dc7067965fe02304635db665806dee76e7ead7e002d41"; vout = 1; }];
+//                exclude_common_ranges = true;
+//            });
+//            providers = [];
+//            max_kb_per_item = ?2;
+//        };
+//        total := payCost(await BtcOrdinalsCanister.request_cost(sat_range_args), total);
+//        assertOk("SatRange", await BtcOrdinalsCanister.request(sat_range_args));
 
         // sat_info 
         let sat_info_args : BtcOrdinalsCanister.ord_args = { 
             function = #SatInfo({
                 ordinal = 85000000000;
             });
-            providers = [];
+            providers = [#Hiro];
             max_kb_per_item = ?1;
         };
         total := payCost(await BtcOrdinalsCanister.request_cost(sat_info_args), total);
